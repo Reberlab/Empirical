@@ -1,3 +1,10 @@
+# Project specific files
+images/
+.idea/
+db.sqlite3
+empirical/local_settings.py
+archive/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

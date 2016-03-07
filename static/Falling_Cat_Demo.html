@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link type="text/css" rel="stylesheet" href="VisCat_Stylesheet.css"/>
+    <meta charset="utf-8"/>
+    <title>VisCat</title>
+    <script type="text/javascript" src="image-preload.js"></script>
+    <script type="text/javascript" src="Falling_Cat_Demo.js"></script>
+    <script type="text/javascript" src="state-machine.js"></script>
+    <script src="server.js"></script>
+</head>
+
+    <script type="text/javascript">
+
+
+
+        function main() {
+            var consent_form = {};
+            // extract sessiontoken from url
+            var url = document.URL;
+            //var params = url.split('?');
+            var params = parse_url(url);
+            //console.log(params);
+            var imgDir = null;
+            var imgList = null;
+            var canvas_space = document.getElementById("canvas_holder");
+            var canvas_properties = '<canvas id="mainWin" width="600" height="600"></canvas>';
+
+
+
+                ServerHelper.group_session_request(params["group"], params["workerId"]);
+                function getSessionByGroup() {
+                    if (ServerHelper.group_session_received) {
+                        sessionToken = ServerHelper.group_session_num;
+                        params["session"] = sessionToken.split(" ")[0];
+                        console.log(params['session']);
+                        ServerHelper.request_config(params["session"]);
+                    } else {
+                        //console.log('not ready yet');
+                        window.requestAnimationFrame(getSessionByGroup);
+                    }
+                }
+                window.requestAnimationFrame(getSessionByGroup);
+
+
+            // this function modifies an HTML element and constructs the consent form. It also creates an "I Accept" button.
+//            function show_consent() {
+//                var form_holder = document.getElementById("form_holder");
+//                consent_string = "<h2>You are being asked to participate in a research study.  Please read and provide consent to participate before beginning.</h2><table class=\"consent\">";
+//                for (section in consent_form) {
+//                    consent_string += "<tr><td>" + section + "</td><td><b>" + consent_form[section] + "</b></td></tr>"
+//                }
+//                consent_string += "</table><div id=\"acceptbutton\"><p></p>Do you consent to participate in the experiment?<br><br></div>";
+//                form_holder.innerHTML = consent_string;
+//                b = document.createElement("input");
+//                b.type = "button";
+//                b.value = "I accept";
+//                //b.style.margin = "0px 0px 0px 8.5%";
+//                b.addEventListener("click", consent_accepted);
+//                document.getElementById("acceptbutton").appendChild(b);
+//                //form_holder.appendChild(b);
+//            }
+//
+//            //cleans up the listener, empties the div and begins the cfg process.
+//            function consent_accepted() {
+//                b.removeEventListener("click", consent_accepted);
+//                var form_holder = document.getElementById("form_holder");
+//                form_holder.innerHTML = '';
+//                //next_session_state();
+//                //document.getElementById("mainWin").focus();
+//                //console.log("Consent accepted");
+//                //console.log(params["session"]);
+//                ServerHelper.request_config(params["session"]);
+//                window.requestAnimationFrame(cfgIsReady);
+//            }
+//
+//            // displays the consent form when it's ready to be shown.
+//            function showConsent() {
+//                //console.log('getting consent');
+//                if (ServerHelper.consent_received) {
+//                    if (ServerHelper.status === 'None') {
+//                        consent_form = {};
+//                        //console.log('none');
+//                    }else {
+//                        try {
+//                            form = JSON.parse(ServerHelper.status);
+//                            consent_form = form['consent_form'];
+//                        } catch (e) {
+//                            consent_form = {};
+//                        }
+//                    }
+//                    show_consent();
+//                } else {
+//                    window.requestAnimationFrame(showConsent);
+//                }
+//            }
+
+
+            window.requestAnimationFrame(cfgIsReady);
+
+
+            // checks to see whether the cfg has been retrieved. If so, it creates the canvas element
+            // and invokes image_preload to fetch images.
+            function cfgIsReady() {
+                //console.log('getting cfg');
+                if (ServerHelper.config_received === true) {
+                    cfg = JSON.parse(ServerHelper.config_file);
+                    imgDir = cfg["exp_control"].imgPath;
+                    //var imgDir = "VisCat_Stims_13_3/";
+                    imgList = cfg["exp_control"].stimList;
+                    window.requestAnimationFrame(preLoadIsDone);
+
+                    canvas_space.style.margin = "auto";
+                    canvas_space.innerHTML = canvas_properties;
+                    img_preload(imgList, imgDir);
+                } else {
+                    window.requestAnimationFrame(cfgIsReady);
+                }
+            }
+
+
+            // function that checks whether img-preload is done and then invokes the button creation function
+            function preLoadIsDone() {
+                if (preLoad_done === true) {
+                    window.requestAnimationFrame(startExp);
+                    clickToStart();
+                } else {
+                    window.requestAnimationFrame(preLoadIsDone);
+                }
+            }
+
+            // function that checks whether the button is ready and we're set to start the exp, then starts it.
+            function startExp() {
+                if (readyToStart === true) {
+                    startFallingStimsExp(params);
+                }else{
+                    window.requestAnimationFrame(startExp);
+                }
+            }
+
+        }
+
+
+    </script>
+<body onload="main()">
+<div id="read_before_accepting">
+<p style = "margin-top: 10px; text-align: center; font-size: 40px; color: #ffff00;"><b>!!!Please Read Before Accepting!!!</b></p>
+<br>
+<p  id = 'reqs' style = "margin-top: -50px; margin-left: 33%; text-align: left; font-size: 22px; color: #fffc00;">
+    If you have already participated in a study that looks like this one, please do not accept another.<br>
+    We cannot use your data a second time.<br><br>
+
+    1) This HIT requires approximately 1 hour of sustained attention to complete.<br>
+    2) If you cannot commit to this, please do not accept this HIT.<br>
+    3) Payment on the HIT is contingent on reasonable performance.
+    </p>
+</div>
+
+<!--phantom div for the consent-->
+<div id="form_holder"></div>
+
+
+<div id="trial_design"></div>
+
+<!--phantom div for the canvas element-->
+
+<div id="canvas_holder" style = "text-align: center; vertical-align: middle; width: 100%; height: 100%; overflow: hidden"></div>
+
+
+</body>
+</html>

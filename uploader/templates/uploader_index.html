@@ -1,0 +1,37 @@
+{% extends "base_uploader.html" %}
+
+{% block content %}
+    <h2>Upload Zip File</h2>
+
+    <form action="#" method="post" enctype="multipart/form-data">
+        {% csrf_token %} {{form}}
+        <input type="submit" value="Upload" />
+    </form>
+    <hr>
+    Go to <a href="{% url 'exp_index' %}">Experiment index</a>
+    <hr>
+    <h2>Previously uploaded zip files</h2>
+    {% for fn in zip_list %}
+        {{forloop.counter}}. {{ fn.group }} on {{fn.upload_date}} by {{ fn.upload_user }}<br>
+    {% endfor %}
+    <hr>
+
+    <h2>Images available</h2>
+    <table>
+    <tr><th>Image Group</th><th>Experimenter</th><th>Upload date</th><th>Image list</th></tr>
+    {% for group,info in image_groups.items %}
+        <tr>
+        <td>{{ group }}</td> <td>{{ info.0 }}</td> <td>{{ info.1 }}</td>
+            <td> {% for fn in info.2|slice:":10" %}
+                <a href="/images/{{ group }}/{{ fn }}">{{ fn }}</a>
+                {% endfor %}
+                {% if info.2|length > 10 %}
+                ...
+                {%  endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+
+{% endblock %}
+

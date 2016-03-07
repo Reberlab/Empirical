@@ -1,0 +1,29 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <h1>Session {{ session.name }}, {{ session.sessionToken }}</h1>
+    <h3>Part of experiment {{ session.expName }}</h3>
+    <h3>Created on {{ session.creationDate }}</h3>
+
+    {% if reports|length > 1 %}
+        <hr>
+        <p>{{ reports|length }} report events found</p>
+        <table>
+        <tr><th>Id</th><th>Type</th><th>Date</th><th>Content</th></tr>
+        {% for d in reports %}
+            <tr>
+            <td valign="top" align="center">{{ d.pk }}<br><a href="{% url 'one_data_file' session.sessionToken reports.0.pk %}">Download File</a></td>
+            <td valign="top" align="center">{{ d.eventType }}</td> <td valign="top">{{ d.uploadDate }}</td>
+            <td><pre>{{ d.dataLog|slice:":1000" }}</pre></td>
+            </tr>
+        {% endfor %}
+        </table>
+        <hr>
+    {% elif reports|length == 1 %}
+        <h3>Reporting on upload {{ reports.0.pk }}</h3>
+        <p> Type: {{ reports.0.eventType }} at {{ reports.0.uploadDate }}</p>
+        <a href="{% url 'one_data_file' session.sessionToken reports.0.pk %}">Download File</a>
+        <pre>{{ reports.0.dataLog }}</pre>
+    {% endif %}
+
+{% endblock %}

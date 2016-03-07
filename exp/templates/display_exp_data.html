@@ -1,0 +1,23 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <h1>All data for {{ expName }}</h1>
+    <p><a href="{%  url 'download' sessionToken %}">Download all experiment data</a></p>
+    </br>
+
+    <table>
+    <tr><th>Session Token</th><th>Type</th><th>Id</th><th>Date</th><th>Content</th></tr>
+
+    {% for r in reports %}
+        <tr>
+        <td valign="top" align="center"><a href="{% url 'display_data' r.0 %}">{{ r.0 }}</a></td>
+        <td valign="top" align="center">{{ r.1 }}</td>
+        <td valign="top" align="center"><a href="{% url 'display_data' r.0 r.2 %}">{{ r.2 }}</a></td>
+        <td valign="top" align="center">{{ r.3 }}</td>
+        <td><pre>{{ r.4 }}</pre></td>
+        </tr>
+    {% endfor %}
+
+    </table>
+
+{% endblock %}

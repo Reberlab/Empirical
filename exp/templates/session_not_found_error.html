@@ -1,0 +1,8 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <h1>Error: No Session found that matches {{ token }}</h1>
+
+    <a href="{% url 'exp_index' %}">Back to experiment index</a>
+
+{% endblock %}

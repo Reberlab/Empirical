@@ -1,0 +1,13 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <h1>Security Event list</h1>
+
+    <table>
+    <tr><th>Session Token</th><th>Date</th><th>Count</th><th>Locked</th><th>Log</th></tr>
+
+    {% for s in event_list %}
+        <tr><td>{{ s.sessionToken }}</td><td>{{ s.creationDate }}</td><td>{{ s.count }}</td><td>{{ s.locked }}</td><td>{{ s.security_log }}</td></tr>
+    {% endfor %}
+    </table>
+{%  endblock %}

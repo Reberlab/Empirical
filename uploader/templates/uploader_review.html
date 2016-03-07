@@ -1,0 +1,31 @@
+{% extends "base_uploader.html" %}
+
+{% block content %}
+
+    <h2>Upload confirm</h2>
+
+    <form action="{% url 'uploader_review' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %} {{form}}
+        <input type="submit" value="Upload" />
+    </form>
+    <hr>
+    <p>Adding to experiment {{ expName }}</p>
+    <p>Config files</p>
+    <ul>
+    {% for cfg in cfgList %}
+        <li>{{ cfg }}</li>
+    {% empty %}
+        <li>No configuration files uploaded</li>
+    {% endfor %}
+    </ul>
+    <p>Image files</p>
+    <ul>
+    {% for i in imgList %}
+        <li>{{ i }}</li>
+    {% empty %}
+        <li>No image files uploaded</li>
+    {% endfor %}
+    </ul>
+
+    <a href="{%  url 'uploader_index' %}">Back to Uploader</a>
+{%  endblock %}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    {% load staticfiles %}
+    <link type="text/css" rel="stylesheet" href="{% static 'empirical.css' %}"/>
+    <title>Empirical</title>
+</head>
+<body>
+
+<div id="header">
+    {% block header %}
+    <h1 align="center"><b>Empirical</b></h1>
+    <p align="center"><b>Internet Based Behavioral Experimentation</b></p>
+    <hr>
+    {%  endblock %}
+</div>
+
+<div id="content">
+    <h3>Welcome to Empirical, hosted by the Reberlab</h3>
+    <p>This is a site for coordinating online psychology experiments.  If you are interested in participating, please contact reberlab@gmail.com.</p>
+    <p>Once cleared, ads for experiments open for recruiting will go here.
+        You can also look for opportunities to participate in paid research through Amazon's Mechanical Turk system.</p>
+    <p><b>Privacy and confidentiality statement</b><br>In our research, we maintain a strong commitment to responsible conduct of research and ethical practice.
+        All of our data are de-identified and stored securely.  During ongoing research, data are only available to authorized personnel.
+        All research personnel maintain up to date training and research ethics certification.  Our research often leads to
+        publication in peer-reviewed journals.  Data presented, described or made available through that process are carefully fully
+        anonymized to avoid compromising the privacy of our participants.
+    </p>
+    <hr>
+    <p>Home page for experimenters (login required) is <a href="{%  url 'home'  %}">here</a></p>
+</div>
+
+<div id="footer">
+    {% block footer %}
+    <hr>
+    <table width="100%">
+        <tr>
+            <td align="left"><em>Written by PJR</em></td>
+            <td align="right"><em>Built on Django</em></td>
+        </tr>
+    </table>
+    {%  endblock %}
+</div>
+
+</body>
+</html>

@@ -1,0 +1,76 @@
+#header {
+    background-color: darkblue;
+    color: white;
+    font-size: 150%;
+    padding: 20px;
+    margin: 0px 40px 0px 40px;
+}
+#footer {
+    background-color: darkblue;
+    color: white;
+    padding:20px;
+    margin: 0px 40px;
+    font-size: 75%
+}
+#content {
+    padding: 40px 40px;
+    margin: 40px 40px;
+    font-size: 100%;
+}
+#nav {
+    background-color: lightcyan;
+    padding: 10px;
+    margin: 0px 40px 0px 40px;
+    float: top;
+}
+#nav ul {
+    height: auto;
+    padding: 8px 20px;
+}
+#nav li {
+    display: inline;
+}
+#nav a {
+    text-decoration: none;
+    color: #00F;
+    padding: 8px 8px  8px 8px;
+}
+table {
+    max-width: 100%;
+    table-layout: fixed;
+    word-wrap: break-word;
+    border: 1px solid gray;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 5px;
+    border: 1px solid gray;
+    border-collapse: collapse;
+    min-width: 100px;
+}
+textarea {
+    vertical-align: top;
+}
+.left {
+    float: left;
+    width: 65%;
+}
+
+.right {
+    float: right;
+    width: 35%;
+}
+fieldset {
+    display: block;
+    margin-left: 2px;
+    margin-right: 60px;
+    padding-top: 0.35em;
+    padding-bottom: 0.625em;
+    padding-left: 0.75em;
+    padding-right: 0.75em;
+    border: 2px groove;
+}
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}

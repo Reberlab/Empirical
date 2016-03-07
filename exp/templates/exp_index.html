@@ -1,0 +1,31 @@
+{%  extends "base_report.html" %}
+
+{%  block content %}
+    <h1>Available Experiments List</h1>
+    <table>
+    <tr><th>Experiment name</th><th>Links</th><th>Upload date</th><th>Number of cfgs</th><th>Cfg names</th></tr>
+
+    {% for e in experiments %}
+        <tr>
+        <td><a href="{% url 'display_exp_info' e.token %}"><b> {{ e.name }}</b></a></td>
+        <td><a href="{% url 'make_tokens' e.token %}">Create Tokens</a><br>
+            <a href="{% url 'display_exp_data' e.token %}">Show Data</a></td>
+        <td>{{ e.date }}</td>
+        <td>{{ e.num_sessions }}</td>
+        <td>
+        {% for cfg,token in e.cfg_list|slice:":10" %}
+            <a href="{% url 'display_config' token %}">{{ cfg }}</a>
+        {%  endfor %}
+        {% if e.cfg_list|length > 10 %}
+            ...
+        {%  endif %}
+        </td>
+        </tr>
+    {% endfor %}
+
+    </table>
+    </br>
+    <a href="{% url 'new_config' %}">Add a new configuration file manually</a>
+    </br>
+    <a href="{% url 'security_list' %}">List of Suspicious Upload Events</a>
+{% endblock content %}

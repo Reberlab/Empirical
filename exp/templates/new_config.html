@@ -1,0 +1,16 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <h1>Create Configuration File</h1>
+    {% if sessionToken %}
+        <p><a href="{% url 'display_exp_info' sessionToken %}">Cancel</a></p>
+    {% else %}
+        <p><a href="{% url 'exp_index' %}">Cancel</a></p>
+    {% endif %}
+    </br>
+    <form action="#" method="post" enctype="multipart/form-data">
+        {% csrf_token %} {{form}}
+        <input type="submit" value="Upload" />
+    </form>
+
+{%  endblock %}

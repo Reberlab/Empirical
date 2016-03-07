@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link type="text/css" rel="stylesheet" href="VisCat_Stylesheet.css"/>
+    <meta charset="utf-8"/>
+    <title>VisCat Demo</title>
+    <script type="text/javascript" src="image-preload.js"></script>
+    <script type="text/javascript" src="Visual_Category_Learning_Demo.js"></script>
+    <script type="text/javascript" src="state-machine.js"></script>
+    <script src="server.js"></script>
+</head>
+
+    <script type="text/javascript">
+        function main() {
+            var params = {};
+            var canvas_space = document.getElementById("canvas_holder");
+            console.log('running Main');
+            ServerHelper.request_config('c3d4dfd1465fd480');
+            window.requestAnimationFrame(cfgIsReady);
+
+            function cfgIsReady() {
+                //console.log('getting cfg');
+                if (ServerHelper.config_received === true) {
+                    cfg = JSON.parse(ServerHelper.config_file);
+                    imgDir = cfg["exp_control"].imgPath;
+                    //var imgDir = "VisCat_Stims_13_3/";
+                    imgList = cfg["exp_control"].stimList;
+                    window.requestAnimationFrame(preLoadIsDone);
+
+                    //canvas_space.style.margin = "auto";
+                    //canvas_space.innerHTML = canvas_properties;
+                    img_preload(imgList, imgDir);
+                } else {
+                    window.requestAnimationFrame(cfgIsReady);
+                }
+            }
+
+            function preLoadIsDone() {
+                if (preLoad_done === true) {
+                    window.requestAnimationFrame(startExp);
+                    clickToStart();
+                } else {
+                    window.requestAnimationFrame(preLoadIsDone);
+                }
+            }
+
+            // function that checks whether the button is ready and we're set to start the exp, then starts it.
+            function startExp() {
+                if (readyToStart === true) {
+                    params["demo"] = 1;
+                    startVisCatDemo(params);
+                }else{
+                    window.requestAnimationFrame(startExp);
+                }
+            }
+
+
+            //startVisCatDemo();
+        }
+
+    </script>
+<body onload="main()">
+<p style = "margin-top: 10px; text-align: center; font-size: 40px; color: #ffff00;"><b>!!!Please Read Before Accepting!!!</b></p>
+<br>
+<p  id = 'reqs' style = "margin-top: -50px; margin-left: 33%; text-align: left; font-size: 22px; color: #fffc00;">
+    If you have already participated in a study that looks like this one, please do not accept another.<br>
+    We cannot use your data a second time.<br><br>
+
+    1) This HIT requires approximately 1 hour of sustained attention to complete.<br>
+    2) If you cannot commit to this, please do not accept this HIT.<br>
+    3) Payment on the HIT is contingent on reasonable performance.
+    </p><br>
+
+<!--<div id="form_holder"></div>-->
+
+<!--<div id="mturk_form"></div>-->
+<div id="trial_design"></div>
+<canvas id="mainWin" width="600" height="600" style="position:relative; margin-top: -20px; margin-left: 33%;"></canvas>
+
+<!--<p style="font-size: 32px; margin-top: -40px;position: fixed;"><b>Trial Design</b></p>-->
+<!--<img src="https://reberlab.org/images/VisCat_Stims_10_4/Trial_Design.png" width="400" style="position: fixed; margin-top: 10px;">-->
+<!--<div id="canvas_holder"></div>-->
+</body>
+</html>

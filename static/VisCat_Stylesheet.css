@@ -1,0 +1,45 @@
+canvas {
+    /*float: left;*/
+    position: absolute;
+    /*border: 1px solid black;*/
+
+    margin-left: 35%;
+    display: block;
+    width = 600px;
+    z-index: 0;
+    /*position: absolute;*/
+}
+body{
+    background-color: #7F7F7F;
+}
+
+img{
+    float: left;
+    /*width: 400px;*/
+}
+
+#form_holder{
+    margin-left: 20%;
+}
+
+#mturk_form{
+    margin-left: 35%;
+    margin-top: 10px;
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+
+#trial_design{
+    float: left;
+    width: auto;
+    /*margin-top: auto%;*/
+    margin-left: 0;
+}
+
+
+#acceptbutton{
+    font-size: 20px;
+    margin-left: 10%;
+    color: gold ;
+}
+

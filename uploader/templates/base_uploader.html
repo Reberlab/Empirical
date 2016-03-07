@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    {% load staticfiles %}
+    <link type="text/css" rel="stylesheet" href="{% static 'empirical.css' %}"/>
+    <style>
+        #header {
+            background-color: darkslateblue;
+        }
+        #footer {
+            background-color: darkslateblue;
+        }    </style>
+    <title>Empirical: Uploader</title>
+</head>
+<body>
+
+<div id="header">
+    {% block header %}
+    <h1 align="center"><b>Empirical</b></h1>
+    <p align="center"><b>Internet Based Behavioral Experimentation</b></p>
+    <hr>
+        <div style="font-size:50%">
+            <p align="right">Logged in as {{ user }}</p>
+        </div>
+    {%  endblock %}
+</div>
+
+<div id="nav">
+    <ul>
+    <li><a href="{% url 'home' %}">Home</a></li>
+    <li><a href="{% url 'uploader_index' %}">Uploader</a></li>
+    <li><a href="{% url 'exp_index' %}">Experiments</a></li>
+    <li><a href="{% url 'study_index' %}">Studies</a></li>
+    <li style="float:right"><em><a href="{% url 'auth_logout' %}">Logout</a></em><li/>
+    </ul>
+</div>
+
+<div id="content">
+    {%  block content %}
+    {%  endblock %}
+</div>
+
+<div id="footer">
+    {% block footer %}
+    <hr>
+    <table width="100%">
+        <tr>
+            <td align="left"><em>Written by PJR</em></td>
+            <td align="right"><em>Built on Django</em></td>
+        </tr>
+    </table>
+    {%  endblock %}
+</div>
+
+</body>
+</html>

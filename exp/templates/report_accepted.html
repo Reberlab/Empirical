@@ -1,0 +1,10 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <h1>Data Received</h1>
+    <b>Thank you for completing the experiment</b>
+    {% if not security %}
+        <p>Security warning on upload</p>
+    {% endif %}
+    <pre>{{ log }}</pre>
+{% endblock %}

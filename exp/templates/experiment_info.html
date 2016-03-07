@@ -1,0 +1,45 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <h2>Experiment Name: {{ exp.name }}</h2>
+    <p><b>Created on {{ exp.date }}</b></p>
+
+    <ul>
+    <li style="display:inline; padding:10px"><b>Contains {{ exp.num_sessions }} Sessions</b></li>
+    <li style="display:inline; padding:10px"><a href="{% url 'make_tokens' session %}">Generate link tokens</a></li>
+    <li style="display:inline; padding:10px;"><a href="{% url 'display_exp_data' session %}">View experiment data</a></li>
+    <li style="display:inline; padding:10px;"><a href="{% url 'download' session %}">Download all experiment data</a></li>
+    </ul>
+
+    {% if groups %}
+        <h3>Group tokens for this Experiment</h3>
+        <table>
+        <tr><th>Group token</th><th>Study</th></tr>
+        {% for g in groups %}
+            <tr><td><a href="{% url 'token_status' g.0 %}">{{ g.0 }}</a></td>
+                <td>{{ g.1 }}</td></tr>
+        {% endfor %}
+        </table>
+    {% endif %}
+
+    <h3>Session information</h3>
+    <table>
+    <tr><th>Cfg Name</th><th>Token</th><th>Created on</th><th>Data</th></tr>
+    {% for cfg,token,created,reports in exp.cfg_list %}
+        <tr><td><a href="{% url 'display_config' token %}"> {{ cfg }} </a> </td>
+        <td>{{ token }}</td>
+        <td>{{ created }}</td>
+        <td>
+            {% for event,date in reports %}
+                {{ event }} at {{ date }}
+                {% if not forloop.last %} , {% endif %}
+            {% empty %} No data yet
+            {%  endfor  %}
+        </td>
+        </tr>
+    {% endfor %}
+
+    </table>
+    <br/>
+    <a href="{% url 'new_config' session %}">Add new configuration file</a>
+{% endblock %}

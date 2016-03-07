@@ -1,0 +1,9 @@
+{% extends "base_uploader.html" %}
+
+{% block content %}
+    <h1>Archive unpacking report</h1>
+    {% for line in log %}
+        <ul>{{ line }}</ul>
+    {%  endfor %}
+    <a href="{%  url 'uploader_index' %}">Back to Uploader</a>
+{%  endblock %}

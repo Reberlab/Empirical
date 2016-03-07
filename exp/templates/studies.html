@@ -1,0 +1,33 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <form action="#" method="post" enctype="multipart/form-data">
+        {% csrf_token %} {{ form.as_p }}
+        <input type="submit" value="Save" />
+    </form>
+
+    {% if consent %}
+        {% if consent.Error %}
+            <h3>Error: {{ consent.Error }}</h3>
+        {% else %}
+            <h3>New consent form added</h3>
+            <table><tr><th>Key</th><th>Value</th></tr>
+            {% for key,value in consent.consent_form.items %}
+                <tr><td>{{ key }}</td><td>{{ value }}</td></tr>
+            {% endfor %}
+            </table>
+        {%  endif %}
+    {% endif %}
+
+    <table>
+    <tr><th>Study name</th><th>Upload date</th><th>Experimenter</th><th>Recycle</th><th>Unique Id</th><th>Approved consent information</th></tr>
+    {% for s in study_list %}
+        <tr><td><a href="{% url 'study_index' s.pk  %}">{{ s.name }}</a></td>
+            <td>{{ s.creationDate }}</td>
+            <td>{{ s.user }}</td>
+            <td>{{ s.recycle }}</td>
+            <td>{{ s.unique_id }}</td>
+            <td>{{ s.consentJSON }}</td></tr>
+    {% endfor %}
+    </table>
+{% endblock %}

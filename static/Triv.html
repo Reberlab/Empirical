@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Trivia</title>
+    <style>
+        canvas {
+            padding-left: 0;
+            padding-right: 0;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+        }
+    </style>
+</head>
+<body onload="main()">
+<div>
+    <canvas id="mainWin" width="600" height="600" style="border:1px solid #000000;"></canvas>
+</div>
+
+<script src="server.js"></script>
+<script src="sjcl.js"></script>
+
+<script>
+    // Canvas required globals
+    var canvas = document.getElementById("mainWin");
+    var _version = "Triv.js 0.1 Dec 2015";
+    var ctx = canvas.getContext("2d");
+    var requestId = 0;
+
+    var layout = {
+        width: 600,
+        height: 600,
+        cue_area: 400,
+        feedback_area: 200,
+        left: 50, // left margin for text placement
+        top: 100, // location of question text
+        background: function() {
+            // draw any background decorations
+            // function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            radius = 15; x=25; y=25; width=this.cue_area-50; height=this.height-50;
+            ctx.fillStyle='blue';
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fillStyle=cfg['background_color'];
+            ctx.fill();
+        },
+        clear: function() {
+            ctx.clearRect(0,0, this.width, this.height);
+            this.background();
+        },
+    }
+
+    function time_report(s){ // turn seconds into a Xm Xs string; if >1 hr, return Xh Xm string
+    if(s>3600) {
+        var hours=Math.floor(s/3600);
+        return hours.toFixed(0)+"h "+Math.floor((s-(hours*3600))/60).toFixed(0)+"m";
+    }
+    return Math.floor((s/60)).toFixed(0)+"m "+(s%60).toFixed(0)+"s"
+}
+    var stats = {
+        reset: function() {
+            this.time_today=0;
+            this.questions_today=0;
+            this.questions_correct=0;
+            this.time_since_break=0;
+            this.history_num=[];
+            this.history_correct=[];
+            this.xloc=layout.cue_area+10;
+            this.yloc=layout.top;
+        },
+        reset_history: function(num_questions) {
+            for(var i=0;i<num_questions;i++) {
+                this.history_num[i]=0;
+                this.history_correct[i]=0;
+            }
+        },
+        score: function(question_num,correct,response){
+            this.questions_today++;
+            if(correct) this.questions_correct++;
+            if(this.history_correct.length>question_num) {
+                if(correct) this.history_correct[question_num]=1;
+                else this.history_correct[question_num]=0;
+                this.history_num[question_num]++;
+            }
+            var score_line=this.time_today.toFixed(0)+" Q "+question_num+" A "+response;
+            if(correct) score_line+=" 1"
+            else score_line+=" 0"
+            response_log.push(score_line);
+        },
+        add_time: function(elap) {
+            this.time_today+=elap/1000;
+        },
+        draw: function() {
+            ctx.textAlign = "left";
+            ctx.fillStyle = 'black';
+            ctx.font = cfg['time_size']+"px Arial";
+
+            // time
+            var y=this.yloc;
+            ctx.fillText("Time: "+time_report(this.time_today), this.xloc, y);
+            y=y+cfg['time_size']+10;
+
+            ctx.font = cfg['stat_size']+"px Arial";
+            // questions today
+            ctx.fillText("Questions: "+this.questions_today, this.xloc, y);
+            y=y+cfg['stat_size']+10;
+            // questions correct today
+            ctx.fillText("Correct: "+this.questions_correct, this.xloc, y);
+            y=y+cfg['stat_size']+10;
+        }
+    }
+
+    var sessionToken='None';
+    var config_parsed=false;
+    var cfg={};
+    var response_log=[];
+
+    var TriviaDatabase=[];  // list of questions
+    var QuestionList=[];
+
+    var trial_number=0;
+    var current_question=0;
+    var answer_order=[1,2,3,4];
+    var answer_ypos=[0,0,0,0];
+    var current_highlighted=0;
+    var verbose=false;
+    var feedback_onset=window.performance.now();
+    var question_onset=window.performance.now();
+
+
+    function shuffleArray(array) {
+        for (var i = array.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+        }
+       return array;
+    }
+
+    function question_list(length) {
+        var questions=[];
+        // question list algorithm --
+        //  all the questions gotten wrong last session +
+        //  random selection of new questions
+        //  start re-using questions if none left
+
+        var prev_wrong=[];
+        for(var i=0;i<TriviaDatabase.length;i++) {
+            if(stats.history_num[i]>0 && stats.history_correct[i]==0) prev_wrong.push(i);
+        }
+        if(prev_wrong.length>0 && prev_wrong.length<length) {
+            prev_wrong=shuffleArray(prev_wrong);
+            for (i=0;i<prev_wrong.length;i++) questions.push(i);
+        }
+
+        // new questions
+        var new_questions=[];
+        for(i=0;i<TriviaDatabase.length;i++) {
+            if(stats.history_num[i]==0) new_questions.push(i);
+        }
+
+        // needs logic for what to do if this iesn't enough questions
+        new_questions=shuffleArray(new_questions);
+        for(i=0;questions.length<length;i++) questions.push(new_questions[i])
+        questions=shuffleArray(questions);
+        return questions;
+    }
+
+    function next_question() {
+        //current_question=Math.floor(Math.random()*TriviaDatabase.length);
+        // check for repeats, don't use question 0 (it's the column headers)
+        current_question=QuestionList[trial_number];
+        trial_number++;
+        console.log("question "+current_question);
+        //console.log(TriviaDatabase[current_question]);
+        current_highlighted=0;
+        answer_order=shuffleArray(answer_order);
+        //console.log(answer_order);
+        verbose=true;
+    }
+
+    var initialized=false;
+    var preload_state='start';
+    var session_state='begin';
+
+    function welcome_message() {
+        ctx.textAlign = "center";
+        ctx.fillStyle = 'black';
+        ctx.font = "24px Arial";
+        ctx.fillText("Welcome to Trivia Practice", layout.cue_area / 2.0, layout.height / 2 - 50);
+        ctx.fillText("Press any key to begin", layout.cue_area / 2.0, layout.height / 2);
+    }
+
+    function wrapped_lines(s,max_len) {
+        var lines=[];
+        var curr_wid=0;
+        var n=0;
+        var w=s.split(' ');
+        lines[0]=w[0];
+        for(i=1;i<w.length;i++) {
+            curr_wid=ctx.measureText(lines[n]+' '+w[i]).width;
+            if(curr_wid<max_len){
+                lines[n]+=(' '+w[i]);
+            } else {
+                n++;
+                lines[n]=w[i];
+                //console.log("Breaking line, "+curr_wid+' '+max_len);
+            }
+            if(n>5) {
+                console.log(">5 lines");
+                return(lines);
+            }
+        }
+        return(lines);
+    }
+
+    // formatting -- change colors of question, number, answer text?
+    //   boxes around answers to show click zone?
+    function draw_question(show_answer) {
+        var y=0;
+        var linelen=layout.cue_area-(layout.left*2),
+
+        q = TriviaDatabase[current_question];
+        ctx.textAlign = "left";
+        ctx.fillStyle = cfg['question_color'];
+        ctx.font = cfg['question_size'].toString()+"px Arial";
+        var line_height=cfg['question_size']*1.25;
+        // word wrap
+        lines=wrapped_lines(q[0],linelen);
+        for(var i=0;i<lines.length;i++) {
+            ctx.fillText(lines[i], layout.left, layout.top+i*line_height);
+        }
+        y=layout.top+lines.length*line_height+cfg['question_spacing'];
+        ctx.font = cfg['answer_size'].toString()+"px Arial";
+        line_height=cfg['answer_size']*1.25;
+        for (var a = 0; a < 4; a++) {
+            if(y>layout.height) {
+                console.log("Off bottom of screen");
+                return;
+            }
+            // letter/number answer options
+            // box around answer
+            lines=wrapped_lines((a+1).toString()+". "+q[answer_order[a]],linelen);
+            ctx.strokeRect(layout.left-5,y-line_height,linelen+10,lines.length*line_height+cfg['answer_spacing']/2);
+            answer_ypos[a]=y+((lines.length-1)*line_height)/2.0;
+            if(show_answer) {
+                if (current_highlighted == (a + 1)) {
+                    if(check_answer()==true) ctx.fillStyle = cfg['correct_bkg'];
+                    else ctx.fillStyle = cfg['incorrect_bkg'];
+                }
+                else {
+                    if(check_answer()==false && answer_order[a]==1) ctx.fillStyle = cfg['highlighted_bkg'];
+                    else ctx.fillStyle = cfg['answer_bkg'];
+                }
+            } else {
+                if (current_highlighted == (a + 1)) ctx.fillStyle = cfg['highlighted_bkg'];
+                else ctx.fillStyle = cfg['answer_bkg'];
+            }
+            ctx.fillRect(layout.left-5,y-line_height,linelen+10,lines.length*line_height+cfg['answer_spacing']/2);
+            //if(verbose){
+            //    console.log(layout.left-5,y-line_height,linelen+10,lines.length*line_height+cfg['answer_spacing']/2);
+            //}
+            for(i=0;i<lines.length;i++) {
+                if(show_answer) {
+                    if (current_highlighted == (a + 1)) {
+                        if(check_answer()==true) ctx.fillStyle = cfg['correct_color'];
+                        else ctx.fillStyle = cfg['incorrect_color'];
+                    }
+                    else {
+                        if(check_answer()==false && answer_order[a]==1) ctx.fillStyle = cfg['highlighted_color'];
+                        else ctx.fillStyle = cfg['answer_color'];
+                    }
+                } else {
+                    if(current_highlighted==(a+1)) ctx.fillStyle=cfg['highlighted_color'];
+                    else ctx.fillStyle=cfg['answer_color'];
+                }
+                ctx.fillText(lines[i], layout.left, y);
+                y+=line_height;
+            }
+            y+=cfg['answer_spacing'];
+        }
+        if(show_answer) {
+            ctx.textAlign = "center";
+            ctx.font = cfg['question_size'].toString()+"px Arial";
+            if(check_answer()==true) {
+                // positive feedback at bottom of page
+                ctx.fillStyle = cfg['correct_bkg'];
+                ctx.fillText("Correct!", (layout.cue_area/2), layout.height-100);
+            } else {
+                // negative feedback at bottom of page
+                ctx.fillStyle = cfg['incorrect_bkg'];
+                ctx.fillText("Not quite.", (layout.cue_area/2), layout.height-100);
+            }
+        }
+        if(verbose) verbose=false;
+    }
+
+    function draw () {
+        var curr_time=window.performance.now();
+
+        // main draw loop
+        layout.clear();
+
+        // on screen stat elements...
+        stats.draw();
+
+        if (session_state=='begin') {
+            // print welcome message, press key to begin
+            welcome_message();
+        } else if (session_state=='question' || session_state=='confirm') {
+            // display question and options, wait for response -- check for time-out
+            draw_question(show_answer=false);
+        } else if(session_state=='feedback') {
+            // check answer, display feedback -- wait feedback time
+            draw_question(show_answer=true);
+            if((curr_time-feedback_onset)>5000) session_state='iti';
+        } else if(session_state=='iti') {
+            // add time to time counter
+            stats.add_time(curr_time-question_onset);
+            next_question(); // move to next question
+            start_question();  // initialize next question state
+        } else if(session_state=='complete') {
+            // today's session is completed
+        }
+        requestId = window.requestAnimationFrame(draw);
+    }
+
+    function check_answer() {
+        if(answer_order[current_highlighted-1]==1) return true;
+        return false;
+    }
+
+    function start_question() {
+        session_state='question';
+        question_onset=window.performance.now();
+        current_highlighted=0;
+    }
+
+    function start_feedback() {
+        feedback_onset=window.performance.now();
+        stats.score(QuestionList[trial_number],check_answer(),answer_order[current_highlighted]);
+        session_state='feedback';
+    }
+
+    function keypress(e) {
+        var k = String.fromCharCode(e.keyCode);
+        if(session_state=='begin') {
+            // press any key to continue
+            start_question();
+        } else if(session_state=='question') {
+            // get selected answer, session_state='confirm'
+            // check if key on answer key list
+            for(var i=0;i<cfg['answer_keys'].length;i++) {
+                if(cfg['answer_keys'][i]==k) {
+                    current_highlighted=i+1;
+                    session_state='confirm';
+                    return;
+                }
+            }
+        } else if(session_state=='confirm') {
+            // rekey answer or press Enter, session_state='feedback'
+            if(e.keyCode==13) { // enter pressed
+                start_feedback();
+                return;
+            }
+            for(var i=0;i<cfg['answer_keys'].length;i++) {
+                if(cfg['answer_keys'][i]==k) {
+                    if(current_highlighted==(i+1)) {
+                        start_feedback();
+                        return;
+                    } else {
+                        session_state='question'; // return to question state, pre-confirm
+                        return;
+                    }
+                }
+            }
+        } else if(session_state=='feedback') {
+            // Enter to jump to next question
+            if(e.keyCode==13) { // enter pressed
+                session_state='iti';
+            }
+        }
+    }
+
+    function on_screen(loc) {
+        if(loc[0]>0 && loc[0]<<layout.cue_area && loc[1]>0 && loc[1]<layout.height) return true;
+        return false;
+    }
+
+    function mouseClick(e) { // allow mouse responses as well as keys
+        var rect = canvas.getBoundingClientRect();
+        var click_loc=[e.clientX - rect.left, e.clientY - rect.top];
+        if(session_state=='begin') {
+            // press any key to continue
+            if(on_screen(click_loc)) start_question();
+        } else if(session_state=='question') {
+            // figure out which option was clicked
+            for(var i=0;i<4;i++) {
+                if((click_loc[1]-answer_ypos[i])<cfg['answer_size']) {
+                    current_highlighted=i+1;
+                    session_state='confirm';
+                    return;
+                }
+            }
+        } else if(session_state=='confirm') {
+            for(var i=0;i<4;i++) {
+                if((click_loc[1]-answer_ypos[i])<cfg['answer_size']) {
+                    if (i + 1 == current_highlighted) {
+                        start_feedback();
+                        return;
+                    } else {
+                        current_highlighted=i+1;
+                        return;
+                    }
+                }
+            }
+        } else if(session_state=='feedback') {
+            // Enter to jump to next question
+            if(on_screen(click_loc)) session_state='iti';
+        }
+    }
+
+    function start() {
+        // initialize screen, start draw loop
+        layout.clear();
+        stats.reset();
+        // load status for prior question history
+        stats.reset_history(TriviaDatabase.length);
+
+        QuestionList=question_list(300);
+        trial_number=0;
+        next_question();
+        console.log(cfg);
+        requestId = window.requestAnimationFrame(draw);
+    }
+
+    function parseCSV(str) {
+        var r=[];
+        var quote=false;
+        for(var col=c=0;c<str.length;c++) {
+            var cc = str[c], nc = str[c+1];
+            r[col]=r[col] || '';
+            if(cc=='"' && quote && nc=='"') {r[col]+=cc; ++c; continue;}
+            if(cc=='"') { quote=!quote; continue;}
+            if(cc==',' && !quote) {++col; continue;}
+            r[col]+=cc;
+        }
+        return(r);
+    }
+
+    function parse_database(db_string) {
+        // decrypt?
+        lines=db_string.split('\n');
+        for(var i=0; i<lines.length; i++) {
+            q = parseCSV(lines[i]);
+            if (q.length >= 7 && q[2] != '') {
+                TriviaDatabase.push(q.slice(2, 7));
+            }
+            //if (i<10) {
+            //    console.log(i + ' '+ q);
+            //}
+        }
+        console.log("Loaded db");
+        console.log(TriviaDatabase.length + " questions");
+        return true;
+    }
+
+    function load_trivia_db() {
+        db_url=ServerHelper.image_url+'Trivia_db/Trivia_dec2015.csv';
+        ServerHelper.xmlhttp.addEventListener('load',db_loaded);
+        ServerHelper.xmlhttp.open("GET",db_url,true);
+        ServerHelper.xmlhttp.send();
+    }
+
+    function db_loaded() {
+        if (ServerHelper.xmlhttp.readyState == 4) {
+            if (ServerHelper.xmlhttp.status == 200) {
+                database_string = ServerHelper.xmlhttp.responseText;
+                if(parse_database(database_string)) {
+                    database_loaded=true;
+                    preload_state='ready';
+                }
+            } else {
+                ServerHelper.error = ServerHelper.xmlhttp.statusText;
+            }
+        }
+    }
+
+    function terminate(msg) {
+        ctx.clearRect(0,0, 800, 800);
+        ctx.font = "24px Arial";
+        ctx.fillStyle='black';
+        ctx.textAlign="center";
+        ctx.fillText("Error: "+msg, 400,300);
+        window.cancelAnimationFrame(requestId);
+    }
+
+    // utilities for parse_config, contains and hex translation for colors
+    function contains(s,string_list){
+        for(var i=0;i<string_list.length;i++) { if (string_list[i]==s) return(true); }
+        return(false);
+    }
+
+    function dec2hex(dec){
+        hex=Number(parseInt(dec,10)).toString(16);
+        if(hex.length==1) return("0"+hex);
+        return(hex);
+    }
+
+    function convert_colors(tokens){
+        var color_list=[];
+        for(var i=0; i<tokens.length; i++) {
+            // color format possibilities -- #aabbcc, color-name or 3 floats [-1.0,1.0]
+            r=parseFloat(tokens[i]);
+            if (isNaN(r)) {
+                color_list.push(tokens[i]);
+                console.log(tokens[i]);
+            } else {
+                r=(r+1.0)*127.5;
+                if (tokens.length > (i + 1)) {
+                    i++; g = (parseFloat(tokens[i])+1.0)*127.5;
+                    i++; b = (parseFloat(tokens[i])+1.0)*127.5;
+                }
+                else {
+                    g=r; b=r;
+                }
+                // scale from [-1.0, 1.0] to [#00, FF]
+                color='#'+dec2hex(r)+dec2hex(g)+dec2hex(b);
+                color_list.push(color);
+            }
+        }
+        return(color_list);
+    }
+
+    var cfg_strings=['answer_keys'];
+    var cfg_colors=['background_color','question_color','answer_color','answer_bkg',
+        'highlighted_color','highlighted_bkg',
+        'correct_color','correct_bkg','incorrect_color','incorrect_bkg'];
+
+    // sets up the cfg array, which is global
+    function parse_config() {
+        var config=ServerHelper.config_file;
+        var j=0;
+        var args=[];
+        var a='';
+
+        if(config_parsed) return;
+        var lines = config.split('\n');
+        for (var i=0;i<lines.length;i++) {
+            var t=lines[i].trim().split(' ');
+            if (lines[i][0]!='#' && t.length>0 && t[0].trim()!='') {
+                t[0]=t[0].split(':')[0]; // remove trailing colon if necessary
+                console.log(i,t[0]);
+                args=[];
+                if (contains(t[0], cfg_strings)) { // don't convert the parameters to numbers, keep as strings
+                    for (j = 1; j < t.length; j++) {
+                        a = t[j].trim();
+                        if (a.length > 0) {
+                            if (a.length == 1) args.push(a.toUpperCase()); // convert single keys to uppercase
+                            else args.push(a);
+                        }
+                    }
+                } else if (contains(t[0], cfg_colors)) {
+                    args = convert_colors(t.slice(1)); // parse color information
+                    console.log("Converting color");
+                } else { // convert to numbers
+                    for (j = 1; j < t.length; j++) args.push(Number(t[j].trim()));
+                }
+                // add args to cfg object, appending if this key already exists
+                if (cfg.hasOwnProperty(t[0])) cfg[t[0]] = cfg[t[0]].concat(args);
+                else {
+                    if (args.length == 1) cfg[t[0]] = args[0]; // if only one value, don't store as list
+                    else cfg[t[0]] = args;
+                }
+            }
+        }
+        config_parsed=true;
+    }
+
+    function preload_draw() {
+        if (preload_state=='start') {
+            // if group, get session, else get config
+            // get session token
+            console.log('preload_draw: start');
+            if (cfg.hasOwnProperty('group')) {
+                // get session token from group
+                if (cfg.hasOwnProperty('demo')) {
+                    console.log("Demo mode: group token");
+                    workerId = 'demo';
+                } else if (cfg.hasOwnProperty('workerId')) {
+                    workerId = cfg['workerId'];
+                } else if (cfg.hasOwnProperty('name')) {
+                    workerId = cfg['name'];
+                } else {
+                    var d = new Date().toString().replace(/\S+\s(\S+)\s(\d+)\s(\d+)\s(\d+):(\d+):(\d+)\s.*/, '$2$1$3_$4$5$6');
+                    workerId = 'NoId_' + d;
+                }
+                console.log("Group " + cfg['group'] + ", requesting sessiontoken for " + workerId);
+                ServerHelper.group_session_request(cfg['group'], workerId);
+                preload_state = 'group_wait';
+            } else if (cfg.hasOwnProperty('session')) {
+                sessionToken = cfg['session'];
+                ServerHelper.request_config(sessionToken);
+                preload_state = 'wait_config';
+                console.log("Config requested");
+            } else {
+                terminate("Unable to load configuration");
+            }
+        } else if (preload_state=='group_wait'){
+            if(ServerHelper.group_session_received) {
+                if(ServerHelper.group_session_num.slice(0,5)=='Error') {
+                    console.log(ServerHelper.group_session_num);
+                    terminate("Unable to establish session, please contact Experimenter");
+                }
+                cfg['sessionToken']=ServerHelper.group_session_num;
+                console.log("Got session: "+cfg['sessionToken'])
+                sessionToken=cfg['sessionToken'];
+                ServerHelper.request_config(cfg['sessionToken']);
+                preload_state='wait_config';
+            }
+        } else if (preload_state=='wait_config') {
+            if (ServerHelper.config_received == true) {
+                parse_config();
+                console.log("Config received, loading db");
+                console.log("cfg parsed "+Object.keys(cfg).length.toString());
+                //for(var key in cfg) {
+                //    console.log(key,cfg[key]);
+                //}
+                preload_state='get_db';
+            }
+        } else if(preload_state=='get_db') {
+            // get trivia db (& decrypt)
+            load_trivia_db();
+            preload_state='wait_db';
+        } else if(preload_state=='wait_db') {
+            ctx.font = "20px Arial";
+            ctx.fillText("Loading db", layout.cue_area / 2.0, layout.height / 2 + 50);
+        } else if(preload_state=='ready') {
+            start();
+            // get status -- prior question history
+            // ServerHelper.request_status();
+            // preload_state = 'status_wait';
+            return;
+        }
+        requestId = window.requestAnimationFrame(preload_draw);
+    }
+
+
+    function main() {
+        var url=document.URL;
+        var params=parse_url(url); // function in server.js
+
+        if (params=={} || (params.hasOwnProperty('assignmentId') && params['assignmentId']=="ASSIGNMENT_ID_NOT_AVAILABLE")) {
+            console.log("Run demo...");
+            // run demo
+        } else {
+            console.log("Session token:" + sessionToken)
+            // copy params to cfg for saving in datalog
+            for (var p in params) cfg[p] = params[p];
+            document.getElementById("mainWin").focus();
+            // Start preload loop to get all the starting info
+            requestId = window.requestAnimationFrame(preload_draw);
+        }
+    }
+
+    window.addEventListener("keydown",keypress,false);
+    canvas.addEventListener("click",mouseClick,false);
+
+</script>
+</body>
+</html>

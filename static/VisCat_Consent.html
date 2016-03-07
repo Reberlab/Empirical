@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<p lang="en">
+<head>
+    <link type="text/css" rel="stylesheet" href="Consent_Stylesheet.css"/>
+    <script src="server.js"></script>
+    <meta charset="UTF-8">
+    <title>Northwestern Consent Form</title>
+</head>
+<body>
+<script type="text/javascript">
+
+    // This bit checks to see whether we should display a Demo, or the real experiment.
+    // Once the worker hits "Accept" - they are led to the Consent form.
+
+    var url=document.URL;
+    var params=parse_url(url); // function in server.js
+
+    if (params=={} || (params.hasOwnProperty('assignmentId') && params['assignmentId']==="ASSIGNMENT_ID_NOT_AVAILABLE")) {
+        window.location = 'https://reberlab.org/static/VisCat_Demo.html';
+    } else {
+        var params1 = url.split('?');
+
+        function consentAgree() {
+            var exp_url = 'https://reberlab.org/static/VisCat.html?' + params1[1]; // change this line to reflect your app.
+            location.href = exp_url;
+        }
+    }
+
+
+
+</script>
+
+<!-- NU Seal -->
+<img src="https://reberlab.org/images/NU_seal/NU_seal.jpg" height = 200px width=200px style = "position: fixed; margin-left: 80%">
+
+<p id="Consent_Title">
+    <b>Title of Research Study:</b> Visual Category Learning<br>
+    <b>Investigator:</b> Paul J. Reber, PhD<br>
+    <b>Co-Investigator:</b> Ben Reuveni<br>
+    <b>Supported By:</b> Northwestern University<br>
+</p>
+<br>
+<p id="Consent_Body1">
+    <b>Why am I being asked to take part in this research study?</b><br>
+    We are asking you to take part in this research study because we are trying to learn more about how<br>
+    humans learn novel category structures.<br><br>
+
+    <b>What should I know about a research study?</b>
+</p>
+    <ul>
+        <li>Whether or not you take part is up to you.</li>
+        <li>You can choose not to take part.</li>
+        <li>You can agree to take part and later change your mind.</li>
+        <li>Your decision will not be held against you.</li>
+    </ul>
+
+
+<p id="Consent_Body2">
+    <b>Who can I talk to?</b><br>
+    If you have questions, concerns, or complaints, or think the research has hurt you, talk to the<br>
+    Principal Investigator, Paul J. Reber, at (847) 467-1624, or the graduate student investigator,<br>
+    Ben Reuveni, at reuveni@u.northwestern.edu.<br><br>
+
+    This research has been reviewed and approved by an Institutional Review Board (“IRB”).<br>
+    You may talk to them at (312) 503-9338 or<br>
+    irb@northwestern.edu if:</p>
+    <ul>
+        <li>Your questions, concerns, or complaints are not being answered by the research team.</li>
+        <li>You cannot reach the research team.</li>
+        <li>You want to talk to someone besides the research team.</li>
+        <li>You have questions about your rights as a research participant.</li>
+        <li>You want to get information or provide input about this research.</li>
+    </ul>
+
+<p id="Consent_Body3">
+    <b>Why is this research being done?</b><br>
+    The purpose of this research is to learn more about how humans learn novel categories under various conditions.<br><br>
+
+    <b>How long will the research last?</b><br>
+    Your participation in this study will last approximately 30-60 minutes.<br><br>
+
+    <b>What happens if I say “Yes, I want to be in this research”?</b><br>
+    If you agree to participate, you will be asked to complete an online behavioral study involving viewing <br>
+    images and making decisions as to which category they belong to by pressing keys on a keyboard.<br><br>
+
+    <b>What happens if I do not want to be in this research?</b><br>
+    You can decide not to participate in this research and it will not be held against you.<br><br>
+
+    <b>What happens if I say “Yes”, but I change my mind later?</b><br>
+    You can leave the research at any time and it will not be held against you.  To do so, simply exit the survey.<br>
+    Any data already collected will not be saved.<br><br>
+
+    <b>Is there any way being in this study could be bad for me?</b><br>
+    Your participation does not involve any risks other than what you would encounter in daily life.<br>
+    You may get tired during the tasks; you can rest at any time. If you feel uncomfortable with any of the <br>
+    questions we ask about, you are free to not answer or to skip to the next question. You may withdraw from the study at any time.<br><br>
+
+    <b>What happens to the information collected for the research?</b><br>
+    This survey is being hosted by a secure web-server and involves a secure connection. Upon receiving results of<br>
+    your survey, any possible identifiers will be deleted. You will be identified only by a unique subject number.<br>
+    Your email address will be stored separately from your data, and is only being collected for payment purposes.<br>
+    All information will be kept on a password protected computer only accessible by the research team.<br>
+    The results of the research study may be published, but your name will not be used.<br><br>
+
+    <b>What else do I need to know?</b><br>
+    There is no cost for your participation in this study. You will be paid $5 via Amazon Mechanical Turk’s worker<br>
+    interface or via secure third party payment systems. Your payment will be dispersed to you directly after a completed study session.
+</p>
+
+<p id="Consent_AgreeDisagree">
+    <br><br>
+    <b>Consent</b><br>
+    If you want a copy of this consent for your records, you can print it from the screen.<br><br>
+
+    If you wish to participate, please click the “I Agree” button and you will be taken to the survey.<br><br>
+    If you do not wish to participate in this study, please select “I Disagree” or select X in the corner of your browser.
+
+</p>
+
+<button type="button" id="agree" style="margin-left: 10%;" onclick=consentAgree();>"I Agree"</button>
+<button type="button" id="disagree" style="position: absolute; margin-left: 10%;" onclick="location.href='https://reberlab.org'">"I Disagree"</button>
+</body>
+
+
+
+</html>

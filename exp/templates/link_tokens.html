@@ -1,0 +1,58 @@
+{% extends "base_report.html" %}
+
+{% load staticfiles %}
+
+{% block content %}
+    <h3>Group token: {{ groupToken }}</h3>
+
+    <p>Links to launch experimental sessions for {{ app }}:</p>
+    {% if groupToken %}
+        <p>Group Token:  <a href="{{ groupTokenURL }}">{{ groupTokenURL }}</a></p>
+        <p>Demo Link: <a href="{{ groupTokenURL }}&demo">{{ groupTokenURL }}&demo</a></p>
+    {% endif %}
+
+    {% if study %}
+        <h3>Group token linked to Study {{ study.name }}</h3>
+        <p>Tokens will recycle: {{ study.recycle }}</p>
+        <p>Prior participants will be excluded: {{ study.unique_id }}</p>
+        <p>Participant ids:
+        {% for p in excluded %}
+            {{ p }}
+        {% empty %}
+            None yet.
+        {% endfor %}
+        </p>
+    {% else %}
+        <h3>Token group not linked to a Study</h3>
+    {% endif %}
+
+    <h3>Session tokens</h3>
+    <p>Overall status: {{ status.0 }} tokens, {{ status.1 }} available for new data collection.</p>
+    <table>
+    <tr><th>Session token</th><th>Data status</th><th>Data Records</th></tr>
+    {% for t in tokens %}
+        <tr><td><a href="{% url 'display_config' t.0 %}">{{ t.0 }}</a></td>
+        {% if t.1 > 1 %}
+            <td>Used</td>
+        {% else %}
+            <td>Available</td>
+        {% endif %}
+        <td>{{ t.1 }}</td>
+        </tr>
+    {% empty %}
+        <tr><td>No sessions in group, none available?</td></tr>
+    {% endfor %}
+    </table>
+{% comment %}
+    <p>Log: </p>
+    <ol>
+    {% for line in log %}
+        <li>{{ line }}</li>
+    {% endfor %}
+    </ol>
+{% endcomment %}
+    <p>{% now "jS F Y H:i" %}</p>
+    {% if tokens %}
+    <a href="{% url 'make_tokens' tokens.0.0 %}">Create or add to a token group</a>
+    {% endif %}
+{% endblock %}
