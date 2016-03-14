@@ -25,7 +25,7 @@
 <script>
     // Canvas required globals
     var canvas = document.getElementById("mainWin");
-    var _version = "SeVi.js 0.1 Aug 2015";
+    var _version = "SeVi.js 0.2 Mar 2016";
     var ctx = canvas.getContext("2d");
     var requestId = 0;
 
@@ -610,7 +610,8 @@
         ctx.font = "24px Arial";
         ctx.fillStyle='black';
         ctx.textAlign="center";
-        ctx.fillText("Error: "+msg, 400,300);
+        ctx.fillText("Error: "+msg, 200,300);
+        ctx.fillText("Please contact Experimenter", 200,350);
         window.cancelAnimationFrame(requestId);
     }
 
@@ -634,8 +635,10 @@
                 } else if (cfg.hasOwnProperty('name')) {
                     workerId = cfg['name'];
                 } else {
+                    // prompt for name
                     var d = new Date().toString().replace(/\S+\s(\S+)\s(\d+)\s(\d+)\s(\d+):(\d+):(\d+)\s.*/, '$2$1$3_$4$5$6');
-                    workerId = 'NoId_' + d;
+                    workerId = prompt("This is a multi-session experiment, please enter your name or user id","NoId_" + d);
+                    // need to
                 }
                 console.log("Group " + cfg['group'] + ", requesting sessiontoken for " + workerId);
                 ServerHelper.group_session_request(cfg['group'], workerId);
@@ -650,11 +653,12 @@
             }
         } else if(preload_state == 'group_wait') {
             if(ServerHelper.group_session_received) {
-                if(ServerHelper.group_session_num.slice(0,5)=='Error') {
-                    console.log(ServerHelper.group_session_num);
-                    terminate("Unable to establish session, please contact Experimenter");
+                if(ServerHelper.sessionToken.slice(0,5)=='Error') {
+                    console.log(ServerHelper.sessionToken);
+                    terminate("Unable to establish session");
+                    return;
                 }
-                cfg['sessionToken']=ServerHelper.group_session_num;
+                cfg['sessionToken']=ServerHelper.sessionToken;
                 console.log("Got session: "+cfg['sessionToken'])
                 sessionToken=cfg['sessionToken'];
                 ServerHelper.request_config(cfg['sessionToken']);
@@ -700,7 +704,7 @@
             // run demo
         } else {
             sessionToken=params['session'];
-            console.log("Session token:"+sessionToken)
+            console.log("Session token:"+sessionToken);
             // copy params to cfg for saving in datalog
             for (var p in params) cfg[p]=params[p];
             document.getElementById("mainWin").focus();

@@ -91,7 +91,10 @@ def experiment(request, sessionToken):
             if s[1] in t.groupSessions:
                 if t.groupToken!='' and t.groupToken not in groups:
                     groups.append(t.groupToken)
-                    studies.append(t.studyName.name)
+                    if t.studyName!=None:
+                        studies.append(t.studyName.name)
+                    else:
+                        studies.append('None')
     return render(request, 'experiment_info.html', {'exp': e, 'session': sessionToken, 'groups': zip(groups,studies)})
 
 # show_config() displays information on a single session
