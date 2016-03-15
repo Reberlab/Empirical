@@ -318,8 +318,8 @@ def make_link_tokens(request, token):
         form = TokenForm()
     else:
         for t in previous:
-            #previous_token_links.append((request.build_absolute_uri(static("%s?group=%s" % (t.appletName,t.groupToken))),t))
-            previous_token_links.append(t)
+            if t.groupToken!=None: # shouldn't happen unless there was a bug and malformed group token event
+                previous_token_links.append(t)
         form = TokenForm(initial={'appletName': previous[0].appletName,
                                   'mturk_amount': previous[0].mturk_amount,
                                   'mturk_frame_size': previous[0].mturk_frame_size,

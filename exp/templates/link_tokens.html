@@ -43,14 +43,7 @@
         <tr><td>No sessions in group, none available?</td></tr>
     {% endfor %}
     </table>
-{% comment %}
-    <p>Log: </p>
-    <ol>
-    {% for line in log %}
-        <li>{{ line }}</li>
-    {% endfor %}
-    </ol>
-{% endcomment %}
+
     <p>{% now "jS F Y H:i" %}</p>
     {% if tokens %}
     <a href="{% url 'make_tokens' tokens.0.0 %}">Create or add to a token group</a>

@@ -89,9 +89,9 @@
 
     {% if priorLinks %}
         <p>Prior token groups for {{ exp_name }}</p>
-        <table><tr><th>Token group name</th><th>Group Token</th><th>Number of Sessions</th><th>Session Tokens</th></tr>
+        <table><tr><th>Group Token</th><th>Number of Sessions</th><th>Session Tokens</th></tr>
         {% for g in priorLinks %}
-            <tr><td><a href="{% url 'token_status' g.groupToken %}">{{ g.groupToken }}</a></td><td align="center">{{ l }}</td><td align="center">{{ g.numTokens }}</td><td>{{ g.groupSessions }}</td></tr>
+            <tr><td><a href="{% url 'token_status' g.groupToken %}">{{ g.groupToken }}</a></td><td align="center">{{ g.numTokens }}</td><td>{{ g.groupSessions }}</td></tr>
         {% endfor %}
         </table>
     {% endif %}

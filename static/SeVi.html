@@ -53,6 +53,13 @@
             ctx.stroke();
             ctx.fillStyle=cfg['background_color'];
             ctx.fill();
+
+            if (demo_mode) {
+                ctx.textAlign="center";
+                ctx.fillStyle = 'black';
+                ctx.font = "32px Arial";
+                ctx.fillText("Demonstration Mode",layout.cue_area/2.0,layout.height-50);
+            }
         },
         clear: function() {
             ctx.clearRect(0,0, this.width, this.height);
@@ -90,6 +97,7 @@
     var trial_start = window.performance.now();
     var click_zone=[0,0,0,0];
     var trial_time_out=0;
+    var demo_mode=false;
 
     var stats = {
         reset: function() {
@@ -545,6 +553,7 @@
     }
 
     function send_status() {
+        if (demo_mode) return; // don't do status updates if in demo mode
         var status_log=["Date: "+new Date().toString(),"Version: "+_version];
         status_log.push("Length: "+current_length.toString());
         status_log.push("Trials: "+stats.trials_today.toString());
@@ -597,15 +606,25 @@
         console.log("Status parsed");
     }
 
+    function warn_termination() {
+        // data and status upload
+        send_status();
+        ServerHelper.upload_data('partial',response_log);
+        return "Session not completed yet."
+    }
+
      // partial uploads at breaks
     function end_session() {
+        window.onbeforeunload = null;
         console.log("Session ended");
+        if (demo_mode) return; // don't send data in demo_mode
         send_status();
         ServerHelper.upload_data('complete',response_log);
         console.log("Data uploads requested");
     }
 
     function terminate(msg){
+        window.onbeforeunload = null;
         ctx.clearRect(0,0, 800, 800);
         ctx.font = "24px Arial";
         ctx.fillStyle='black';
@@ -630,6 +649,8 @@
                 if (cfg.hasOwnProperty('demo')) {
                     console.log("Demo mode: group token");
                     workerId = 'demo';
+                    demo_mode=true;
+                    window.onbeforeunload=null;
                 } else if (cfg.hasOwnProperty('workerId')) {
                     workerId = cfg['workerId'];
                 } else if (cfg.hasOwnProperty('name')) {
@@ -638,7 +659,11 @@
                     // prompt for name
                     var d = new Date().toString().replace(/\S+\s(\S+)\s(\d+)\s(\d+)\s(\d+):(\d+):(\d+)\s.*/, '$2$1$3_$4$5$6');
                     workerId = prompt("This is a multi-session experiment, please enter your name or user id","NoId_" + d);
-                    // need to
+                    name_ok = /^[a-z0-9_]+$/i.test(workerId);
+                    while (!name_ok) {
+                        workerId = prompt("User id can only have numbers, letters, underscore:","NoId_" + d);
+                        name_ok = /^[a-z0-9_]+$/i.test(workerId);
+                    }
                 }
                 console.log("Group " + cfg['group'] + ", requesting sessiontoken for " + workerId);
                 ServerHelper.group_session_request(cfg['group'], workerId);
@@ -701,11 +726,16 @@
 
         if (params=={} || (params.hasOwnProperty('assignmentId') && params['assignmentId']=="ASSIGNMENT_ID_NOT_AVAILABLE")) {
             console.log("Run demo...");
+            demo_mode=true;
+            cfg['workerId']='demo';
             // run demo
+            document.getElementById("mainWin").focus();
+            requestId = window.requestAnimationFrame(preload_draw);
         } else {
-            sessionToken=params['session'];
-            console.log("Session token:"+sessionToken);
+            //sessionToken=params['session'];
+            //console.log("Session token:"+sessionToken);
             // copy params to cfg for saving in datalog
+            window.onbeforeunload=warn_termination;
             for (var p in params) cfg[p]=params[p];
             document.getElementById("mainWin").focus();
             // Start preload loop to get all the starting info
