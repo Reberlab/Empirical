@@ -207,7 +207,7 @@
             ServerHelper.upload_data('partial',response_log);
             return;
         }
-        if(stats.trial_todayk>=cfg['session_length'][0] || stats.time_today>=cfg['session_length'][1]) {
+        if(stats.trials_today>=cfg['session_length'][0] || stats.time_today>=cfg['session_length'][1]) {
             // Session is done
             session_state=7;
             return;
