@@ -207,6 +207,7 @@
             ServerHelper.upload_data('partial',response_log);
             return;
         }
+        //console.log('Trials '+stats.trials_today+' today')
         if(stats.trials_today>=cfg['session_length'][0] || stats.time_today>=cfg['session_length'][1]) {
             // Session is done
             session_state=7;
@@ -658,13 +659,14 @@
                 } else {
                     // prompt for name
                     var d = new Date().toString().replace(/\S+\s(\S+)\s(\d+)\s(\d+)\s(\d+):(\d+):(\d+)\s.*/, '$2$1$3_$4$5$6');
-                    workerId = prompt("This is a multi-session experiment, please enter your name or user id","NoId_" + d);
+                    workerId = prompt("Please enter your SONA participant ID number","NoId_" + d);
                     name_ok = /^[a-z0-9_]+$/i.test(workerId);
                     while (!name_ok) {
                         workerId = prompt("User id can only have numbers, letters, underscore:","NoId_" + d);
                         name_ok = /^[a-z0-9_]+$/i.test(workerId);
                     }
                 }
+                response_log.push("SubjectID: " + workerId)
                 console.log("Group " + cfg['group'] + ", requesting sessiontoken for " + workerId);
                 ServerHelper.group_session_request(cfg['group'], workerId);
                 preload_state = 'group_wait';
@@ -695,6 +697,19 @@
                 console.log("cfg parsed "+Object.keys(cfg).length.toString());
                 cfg_adjust();
                 ServerHelper.request_status();
+                preload_state = 'log_config';
+            }
+        } else if(preload_state=='log_config') {
+            if (config_parsed) { // don't continue until ready
+                // put config into the response log to start
+                response_log.push("Experiment app: " + _version);
+                response_log.push("Source URL: " + document.URL);
+                response_log.push("Run on " + new Date());
+                response_log.push("");
+                for (key in cfg) {
+                    response_log.push(key + ": " + cfg[key]);
+                }
+                response_log.push("##########");
                 preload_state = 'status_wait';
                 console.log("Config received, status requested for "+ServerHelper.sessionToken);
             }

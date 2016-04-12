@@ -9,14 +9,28 @@ var debug_preload=true;
 
 function preload_draw(){
     if(preload_state=='pre_group'){
+        console.log("In pre-group");
         // get the session token
         // to do: check if demo -- add /demo to url request
         if(cfg.hasOwnProperty('demo')) {
             if (debug_preload) console.log("Demo mode: group token");
             workerId = 'demo';
-        } else if(cfg.hasOwnProperty('workerId')) {
-            workerId=cfg['workerId'];
-        } else { //Tue Nov 17 2015 14:54:01 GMT-0600 (Central Standard Time)
+        }else if(cfg.hasOwnProperty('workerId')) {
+            workerId = cfg['workerId'];
+        }else if(!cfg.hasOwnProperty('workerId')){
+            console.log("Getting workerID");
+            //if (cfg['prompt']==1 || cfg['prompt']=='1'){
+                console.log("prompt " +cfg['prompt']);
+                // prompt for name
+                workerId = prompt("Please enter your SONA participant ID number","NoId_" + d);
+                name_ok = /^[a-z0-9_]+$/i.test(workerId);
+                while (!name_ok) {
+                    workerId = prompt("User id can only have numbers, letters, underscore:","NoId_" + d);
+                    name_ok = /^[a-z0-9_]+$/i.test(workerId);
+                }
+            //}
+          response_log.push("SubjectID: " + workerId)
+        }else { //Tue Nov 17 2015 14:54:01 GMT-0600 (Central Standard Time)
             var d= new Date().toString().replace(/\S+\s(\S+)\s(\d+)\s(\d+)\s(\d+):(\d+):(\d+)\s.*/,'$2$1$3_$4$5$6');
             workerId='NoId_'+ d;
         }
