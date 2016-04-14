@@ -17,19 +17,6 @@ function preload_draw(){
             workerId = 'demo';
         }else if(cfg.hasOwnProperty('workerId')) {
             workerId = cfg['workerId'];
-        }else if(!cfg.hasOwnProperty('workerId')){
-            console.log("Getting workerID");
-            //if (cfg['prompt']==1 || cfg['prompt']=='1'){
-                console.log("prompt " +cfg['prompt']);
-                // prompt for name
-                workerId = prompt("Please enter your SONA participant ID number","NoId_" + d);
-                name_ok = /^[a-z0-9_]+$/i.test(workerId);
-                while (!name_ok) {
-                    workerId = prompt("User id can only have numbers, letters, underscore:","NoId_" + d);
-                    name_ok = /^[a-z0-9_]+$/i.test(workerId);
-                }
-            //}
-          response_log.push("SubjectID: " + workerId)
         }else { //Tue Nov 17 2015 14:54:01 GMT-0600 (Central Standard Time)
             var d= new Date().toString().replace(/\S+\s(\S+)\s(\d+)\s(\d+)\s(\d+):(\d+):(\d+)\s.*/,'$2$1$3_$4$5$6');
             workerId='NoId_'+ d;
@@ -86,6 +73,18 @@ function preload_draw(){
             response_log.push("Source URL: " + document.URL);
             response_log.push("Run on " + new Date());
             response_log.push("");
+            if(cfg.hasOwnProperty('prompt')){
+                console.log("Getting workerID");
+                if (cfg['prompt']==1 || cfg['prompt']=='1'){
+                    // prompt for name
+                    workerId = prompt("Please enter your SONA participant ID number","NoId_" + d);
+                    name_ok = /^[a-z0-9_]+$/i.test(workerId);
+                    while (!name_ok) {
+                        workerId = prompt("User id can only have numbers, letters, underscore:","NoId_" + d);
+                        name_ok = /^[a-z0-9_]+$/i.test(workerId);
+                    }
+                }response_log.push("SubjectID: " + workerId);
+                }
             for (key in cfg) {
                 response_log.push(key + ": " + cfg[key]);
             }
