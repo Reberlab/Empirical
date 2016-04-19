@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Memory Experiment</title>
+    <style>
+        canvas {
+            padding-left: 0;
+            padding-right: 0;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+        }
+    </style>
+</head>
+
+<body onload="main()">
+<div>
+    <canvas id="mainWin" width="600" height="600" style="border:1px solid #000000;"></canvas>
+</div>
+
+<script src="server.js"></script>
+
+<script>
+
+    var canvas = document.getElementById("mainWin");
+    var _version = "JS Experiment app";
+    var ctx = canvas.getContext("2d");
+    var requestId = 0;
+
+    var state = 'init';
+    var preload_state = 'init';
+    var demo_mode = false;
+
+    var sessionToken = '';
+    var cfg = {};
+    var response_log = [];
+
+    function draw() {
+        // main experiment frame refresh loop based on state variable
+
+        if (state=='init') {
+            // instructions
+        } else if (state=='study') {
+            // show stimuli, collect study ratings
+        } else if (state=='delay') {
+            // impose experimental delay between study and test
+        } else if (state=='test') {
+            // give memory test
+        } else if (state=='done'){
+            // thank you message, upload data, terminate gracefully
+        }
+        requestId = window.requestAnimationFrame(draw);
+    }
+
+    // input functions
+    function keypress(e) {
+        // study, delay and test responses different
+    }
+
+    function mouseclick(e) {
+        // study, delay and test responses different
+
+    }
+
+     function log_event(event_type,args) { // args[0] is generally trial_num for event, others vary
+         // general output file format:
+         // timestamp trial_number event_type args[1:]
+         var elap = (window.performance.now() - session_start)/1000.0; // time stamp
+         var line = elap.toFixed(2)+"\t"+args[0]+"\t"+event_type+"\t";
+         for(var i=1;i<args.length;i++) line+="\t"+args[i].toString();
+         response_log.push(line);
+    }
+
+    // server functions
+    function warn_termination() {
+        // data and status upload
+        // send_status() here if appropriate
+        ServerHelper.upload_data('partial',response_log);
+        return "Session not completed yet."
+    }
+
+     // partial uploads at breaks
+    function end_session() {
+        window.onbeforeunload = null;
+        if (demo_mode) return; // don't send data in demo_mode
+        // send_status() here if needed
+        ServerHelper.upload_data('complete',response_log);
+    }
+
+    function terminate(msg){
+        window.onbeforeunload = null;
+        // alert error, quit
+        alert("Error: "+msg+". Please contact Experimenter.");
+        window.cancelAnimationFrame(requestId);
+    }
+
+    function parse_config(){
+        var lines = config.split('\n');
+        for (var i=0;i<lines.length;i++) {
+            t = lines[i].trim().split(' ');  // cfg file is space separated here
+            // skip comments '#' and blank lines
+            if (lines[i][0] != '#' && t.length > 0 && t[0].trim() != '') {
+                // t[0] is the first keyword on the line, t[1:] are the arguments
+                // everything is strings at this point, numbers & colors need to be converted explicitly as needed
+            }
+        }
+    }
+
+    // Preload & initialization
+    function preload_draw() {
+        // preload things, cfg file, etc.
+        // get configuration file with list of stimuli, words, pictures
+
+        if (preload_state == 'init') {
+            if (cfg.hasOwnProperty('group')) {
+                // get session token from group
+                ServerHelper.group_session_request(cfg['group'], 'No_worker_id');
+                preload_state = 'group_wait';
+            } else if (cfg.hasOwnProperty('session')) {
+                sessionToken = cfg['session'];
+                ServerHelper.request_config(sessionToken);
+                preload_state = 'session_wait';
+            } else {
+                terminate("Unable to load configuration");
+            }
+        } else if(preload_state == 'group_wait') {
+            if(ServerHelper.group_session_received) {
+                if(ServerHelper.sessionToken.slice(0,5)=='Error') {
+                    console.log(ServerHelper.sessionToken);
+                    terminate("Unable to establish session");
+                    return;
+                }
+                cfg['sessionToken']=ServerHelper.sessionToken;
+                console.log("Got session: "+cfg['sessionToken'])
+                sessionToken=cfg['sessionToken'];
+                ServerHelper.request_config(cfg['sessionToken']);
+                preload_state='session_wait';
+            }
+        } else if (preload_state == 'session_wait') {
+            if (ServerHelper.config_received == true) {
+                console.log("cfg parsed "+Object.keys(cfg).length.toString());
+                ServerHelper.request_status();
+                preload_state = 'log_config';
+            }
+        } else if(preload_state=='log_config') {
+            if (config_parsed) { // don't continue until ready
+                // put config into the response log to start
+                response_log.push("Experiment app: " + _version);
+                response_log.push("Source URL: " + document.URL);
+                response_log.push("Run on " + new Date());
+                response_log.push("");
+                for (key in cfg) {
+                    response_log.push(key + ": " + cfg[key]);
+                }
+                response_log.push("##########");
+                preload_state = 'status_wait';
+                console.log("Config received, status requested for "+ServerHelper.sessionToken);
+            }
+        } else if (preload_state == 'status_wait') {
+            if (ServerHelper.status_received == true) {
+                // set starting variables
+                current_length = 2;
+                trial_number = 0; // last trial completed before this session
+                stats.reset();
+                initialize_screen();
+                session_start = window.performance.now();
+                stats.done_break(); // reset break counters
+                log_event('start', []);
+                parse_status();  // this will override defaults
+                preload_state='loaded';
+                console.log("Status received, starting");
+                requestId = window.requestAnimationFrame(draw);
+                return;
+            }
+
+        if (preload_state=='done') {
+            // hand off to draw when done
+            requestId = window.requestAnimationFrame(draw);
+        } else {
+            requestId = window.requestAnimationFrame(preload_draw);
+        }
+    }
+
+    function main() {
+        var url=document.URL;
+        var params=parse_url(url); // function in server.js
+
+        for (var p in params) cfg[p]=params[p];
+        window.onbeforeunload=warn_termination;
+        requestId = window.requestAnimationFrame(preload_draw);
+    }
+
+    window.addEventListener("keydown",keypress,false);
+    canvas.addEventListener("click",mouseclick,false);
+</script>
+
+</body>
+</html>

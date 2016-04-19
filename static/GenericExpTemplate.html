@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Memory Experiment</title>
+    <style>
+        canvas {
+            padding-left: 0;
+            padding-right: 0;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+        }
+    </style>
+</head>
+
+<body onload="main()">
+<div>
+    <canvas id="mainWin" width="600" height="600" style="border:1px solid #000000;"></canvas>
+</div>
+
+<script src="server.js"></script>
+
+<script>
+
+    var canvas = document.getElementById("mainWin");
+    var _version = "JS Experiment app";
+    var ctx = canvas.getContext("2d");
+    var requestId = 0;
+
+    var state = 'init';
+    var preload_state = 'init';
+    var demo_mode = false;
+
+    var sessionToken = '';
+    var cfg = {};
+    var response_log = [];
+
+    function draw() {
+        // main experiment frame refresh loop based on state variable
+
+        requestId = window.requestAnimationFrame(draw);
+    }
+
+    // input functions
+    function keypress(e) {
+
+    }
+
+    function mouseclick(e) {
+
+    }
+
+     function log_event(event_type,args) { // args[0] is generally trial_num for event, others vary
+         // general output file format:
+         // timestamp trial_number event_type args[1:]
+         var elap = (window.performance.now() - session_start)/1000.0; // time stamp
+         var line = elap.toFixed(2)+"\t"+args[0]+"\t"+event_type+"\t";
+         for(var i=1;i<args.length;i++) line+="\t"+args[i].toString();
+         response_log.push(line);
+    }
+
+    // server functions
+    function warn_termination() {
+        // data and status upload
+        // send_status() here if appropriate
+        ServerHelper.upload_data('partial',response_log);
+        return "Session not completed yet."
+    }
+
+     // partial uploads at breaks
+    function end_session() {
+        window.onbeforeunload = null;
+        if (demo_mode) return; // don't send data in demo_mode
+        // send_status() here if needed
+        ServerHelper.upload_data('complete',response_log);
+    }
+
+    function terminate(msg){
+        window.onbeforeunload = null;
+        // alert error, quit
+        alert("Error: "+msg+". Please contact Experimenter.");
+        window.cancelAnimationFrame(requestId);
+    }
+
+    // Preload & initialization
+    function preload_draw() {
+        // preload things, cfg file, etc.
+
+        if (preload_state=='done') {
+            // hand off to draw when done
+            requestId = window.requestAnimationFrame(draw);
+        } else {
+            requestId = window.requestAnimationFrame(preload_draw);
+        }
+    }
+
+    function main() {
+        var url=document.URL;
+        var params=parse_url(url); // function in server.js
+
+        for (var p in params) cfg[p]=params[p];
+        window.onbeforeunload=warn_termination;
+        requestId = window.requestAnimationFrame(preload_draw);
+    }
+
+    window.addEventListener("keydown",keypress,false);
+    canvas.addEventListener("click",mouseclick,false);
+</script>
+
+</body>
+</html>
