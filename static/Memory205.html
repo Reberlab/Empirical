@@ -95,7 +95,7 @@
         window.cancelAnimationFrame(requestId);
     }
 
-    function parse_config(){
+    function parse_config(config){
         var lines = config.split('\n');
         for (var i=0;i<lines.length;i++) {
             t = lines[i].trim().split(' ');  // cfg file is space separated here
@@ -110,6 +110,15 @@
     // Preload & initialization
     function preload_draw() {
         // preload things, cfg file, etc.
+
+        cfg['studyCondition']='deep';
+        cfg['stimCondition']='words';
+        var wordString="POCKET PAINT PRISON QUARTER CITIZEN VEHICLE ROUGH BRAIN TEMPLE PRINCE"+
+                "MEDICINE FILLING GUARD JOURNAL ENGINE PALACE GRAVE BRANCH CONCRETE DANCER SALARY BASEMENT MATCH NATIVE"+
+                "STABLE FENCE SWIMMING QUEEN OCEAN FACTORY";
+        cfg['wordList']=wordString.split(' ');
+        return;
+
         // get configuration file with list of stimuli, words, pictures
 
         if (preload_state == 'init') {
