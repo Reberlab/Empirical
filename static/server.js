@@ -101,6 +101,7 @@ var ServerHelper = {
         }
         if (ServerHelper.xmlhttp.readyState == 4) {
             ServerHelper.config_received = true;
+            ServerHelper.xmlhttp.removeEventListener('load', ServerHelper.get_config);
             if (ServerHelper.xmlhttp.status == 200) {
                 ServerHelper.config_file = ServerHelper.xmlhttp.responseText;
             } else {
@@ -129,6 +130,7 @@ var ServerHelper = {
         }
         if (ServerHelper.xmlhttp.readyState == 4) {
             ServerHelper.consent_received = true;
+            ServerHelper.xmlhttp.removeEventListener('load', ServerHelper.get_consent_form);
             if (ServerHelper.xmlhttp.status == 200) {
                 ServerHelper.status = ServerHelper.xmlhttp.responseText;
             } else {

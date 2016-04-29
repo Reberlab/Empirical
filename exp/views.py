@@ -448,24 +448,29 @@ def get_session(request, groupToken, workerId=''):
         workerId='NoId_%s' % datetime.now()  # unique workerId string that embeds the date
 
     # used_list accumulates all the used sessions, to be used for recycling if needed
+    debug_string=""
     used_list=[]
     session_match=None
     for s in sessions:
         r=Report.objects.filter(sessionToken=s,eventType='start').order_by('-uploadDate')  # somebody already started this session
         if not r.exists():
+            debug_string+='No start for %s, checking given; ' % s
             r=Report.objects.filter(sessionToken=s,eventType='given')
             if not r.exists():
+                debug_string+='Match on %s ;' % s
                 session_match=s # found an unused session to give
                 break
+        debug_string+='Adding %s to used; ' % s
         used_list.append([r[0].uploadDate,s])
 
     # recycle a previously used token
     if session_match==None:
         study=t.studyName
         if study!=None and study.recycle:
-            used_list.sort()  # sort session token by last data event date, return oldest
+            used_list.sort()  # sort session token by last data event date
             try:
-                session_match=used_list[0][1]
+                debug_string+='Matching from used %s; ' % used_list[0][1]
+                session_match=used_list[0][1] # return oldest
             except:
                 return HttpResponse('Error: Cannot recycle prior session')
         else:
@@ -483,7 +488,9 @@ def get_session(request, groupToken, workerId=''):
     if study!=None and study.participants:
         study.participants=study.participants+' '+workerId
         study.save()
-    return HttpResponse(s)
+    debug_string=session_match+' '+debug_string  # for debugging recycling problems 04/29/2016 -- PJR
+    #return HttpResponse(debug_string)
+    return HttpResponse(session_match)
 
 def return_status(request, sessionToken):
     try:
