@@ -157,13 +157,14 @@
                             i++;
                         }
                     }
+                    params['trialCount12'] = Number(t[3]);
+                    params['trialCount34'] = Number(t[5]);
+
                     window.requestAnimationFrame(preLoadIsDone);
                 }else{
                     window.requestAnimationFrame(trial_num_checker);
                 }
             }
-
-
 
             // function that checks whether img-preload is done and then invokes the button creation function
             function preLoadIsDone() {

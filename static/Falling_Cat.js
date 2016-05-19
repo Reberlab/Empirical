@@ -5,13 +5,19 @@
 
 function startFallingStimsExp(params){
 
+    var bns = cfg["exp_control"].bns;
     // checks to see whether we want to "restart" or not. If not, the experiment will always begin from trial 1
     if (cfg["exp_control"].hasOwnProperty('restart') && cfg["exp_control"].restart == 1){
+        if (bns === 1){
+            trial_count_12 = params['trialCount12'];
+            trial_count_34 = params['trialCount34'];
+        }
         trialCount = params['trialCount'];
     }else {
         trialCount = 0;
+        var trial_count_12 = 0;
+        var trial_count_34 = 0;
     }
-
 
     // a listener for navigating away from the page. "warn_termination" is in the "Functions" section.
     window.onbeforeunload = warn_termination;
@@ -67,8 +73,6 @@ function startFallingStimsExp(params){
     var stimSF = cfg["stim_params"].SF;
     var stimOri = cfg["stim_params"].Ori;
 
-    var bns = cfg["exp_control"].bns;
-
     if (bns == 1){
         var trialsBeforeP2 = cfg["exp_control"].trialBeforeP2;
         var trialsBeforeP3 = cfg["exp_control"].trialBeforeP3;
@@ -83,20 +87,16 @@ function startFallingStimsExp(params){
         var stim_ori_34 = cfg["stim_params"].Ori.slice(940,1881);
         var stimLabels_12 = cfg["exp_control"].stimLabels.slice(0,940);
         var stimLabels_34 = cfg["exp_control"].stimLabels.slice(940, 1881);
-
-
-        var trial_count_12 = 0;
-        var trial_count_34 = 0;
     }
 
 // (un)comment this block for debugging
 
     // var trialBeforeBreak = 5;
     //
-    // var trialsBeforeP2 = 5;
-    // var trialsBeforeP3 = 10;
-    // var trialsBeforeTest = 15;
-    // var trialsBeforeEnd = 20;
+    // var trialsBeforeP2 = 10;
+    // var trialsBeforeP3 = 15;
+    // var trialsBeforeTest = 20;
+    // var trialsBeforeEnd = 25;
     // var feedbackTimeout = 0.1;
     // var itiTimeout = 0.1;
     // var desired_OST = 1.5; // normally 1.5
@@ -468,10 +468,19 @@ function startFallingStimsExp(params){
 
             onstim:  function(event, from, to)      { // show image, wait for key or timeout
                 
-                if (bns == 1) {
-                    console.log("in bns mode");
+                if (bns === 1) {
+                    if (debug === 1) {
+                        console.log("in bns mode");
+                        console.log(trialCount);
+                        console.log(trialsBeforeP2, trialsBeforeP3);
+                        console.log(trialCount < trialsBeforeP2);
+                        console.log(trialCount > trialsBeforeP2 && trialCount < trialsBeforeP3);
+                        console.log(trialCount > trialsBeforeP3);
+                    }
                     if (trialCount < trialsBeforeP2){
-                        console.log("in block 1");
+                        if (debug === 1) {
+                            console.log("in block 1");
+                        }
                         img = img_input_p1[trial_count_12];
                         response.stimImg = stimImg_input_1[trial_count_12];
                         response.label = stimLabels_12[trial_count_12];
@@ -480,10 +489,14 @@ function startFallingStimsExp(params){
                         curr_ori = stim_ori_12[trial_count_12];
                         trial_count_12++;
 
-                    }else if (trialCount > trialsBeforeP2 && trialCount < trialsBeforeP3){
-                        console.log("in block 2 or 3");
+                    }else if (trialCount >= trialsBeforeP2 && trialCount < trialsBeforeP3){
+                        if (debug === 1) {
+                            console.log("in block 2 or 3");
+                        }
                         if ( Math.random() > 0.25){
-                            console.log("showing 34s");
+                            if (debug === 1) {
+                                console.log("showing 34s");
+                            }
                             img = img_input_p2[trial_count_34];
                             response.stimImg = stimImg_input_2[trial_count_34];
                             //curr_trial = trial_count_34;
@@ -497,7 +510,9 @@ function startFallingStimsExp(params){
                                 response.label = stimLabels_34[trial_count_34] - 3;
                             }
                         }else{
-                            console.log("showing 12s");
+                            if (debug === 1) {
+                                console.log("showing 12s");
+                            }
                             img = img_input_p1[trial_count_12];
                             response.stimImg = stimImg_input_1[trial_count_12];
                             response.label = stimLabels_12[trial_count_12];
@@ -506,10 +521,14 @@ function startFallingStimsExp(params){
                             curr_ori = stim_ori_12[trial_count_12];
                             trial_count_12++;
                         }
-                    }else if (trialCount > trialsBeforeP3){
-                        console.log("in block > 3");
+                    }else if (trialCount >= trialsBeforeP3){
+                        if (debug === 1) {
+                            console.log("in block > 3");
+                        }
                         if (Math.random() > 0.35){
-                            console.log("showing 34s");
+                            if (debug === 1) {
+                                console.log("showing 34s");
+                            }
                             img = img_input_p2[trial_count_34];
                             response.stimImg = stimImg_input_2[trial_count_34];
                             //curr_trial = trial_count_34;
@@ -523,7 +542,9 @@ function startFallingStimsExp(params){
                                 response.label = stimLabels_34[trial_count_34] - 3;
                             }
                         }else{
-                            console.log("showing 12s");
+                            if (debug === 1) {
+                                console.log("showing 12s");
+                            }
                             img = img_input_p1[trial_count_12];
                             response.stimImg = stimImg_input_1[trial_count_12];
                             response.label = stimLabels[trial_count_12];
@@ -534,7 +555,9 @@ function startFallingStimsExp(params){
                         }
                     }
                 }else {
-                    console.log("not in bns mode");
+                    if (debug === 1) {
+                        console.log("not in bns mode");
+                    }
                     img = images[trialCount]; // Iterates the image based on trialCount
                     response.stimImg = cfg["exp_control"].stimOrder[trialCount];
                     response.label = stimLabels[trialCount];
@@ -543,7 +566,6 @@ function startFallingStimsExp(params){
                     curr_ori = stimOri[trialCount];
                 }
                 trialCount++;
-                console.log(response.label);
                 lever_win.clearRect(0, 0, 600, 100);
                 basket_win.drawImage(basket, 100, 0, 145,100);
                 basket_win.drawImage(basket, 369, 0, 145,100);
@@ -786,7 +808,7 @@ function startFallingStimsExp(params){
                     if (bns === 1 && trialCount === trialsBeforeP3){
                         DrawText(intervention);
                     }
-                    status_info = ["trial: " + trialCount, "date:" + new Date().toString()];
+                    status_info = ["trial: " + trialCount, "trial12: " + trial_count_12, "trial34: " + trial_count_34, "date:" + new Date().toString()];
 
                     if (cfg["exp_control"].hasOwnProperty('upload') && cfg["exp_control"].upload == 0) {
                         console.log('Not uploading');
@@ -835,7 +857,7 @@ function startFallingStimsExp(params){
                 }
 
                 console.log('sending data');
-                status_info = ["trial: " + trialCount, "date:" + new Date().toString()];
+                status_info = ["trial: " + trialCount, "trial12: " + trial_count_12, "trial34: " + trial_count_34, "date:" + new Date().toString()];
 
                 if (cfg["exp_control"].hasOwnProperty('upload') && cfg["exp_control"].upload == 0) {
                     console.log('Not uploading');
