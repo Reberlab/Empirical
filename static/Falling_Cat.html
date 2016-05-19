@@ -1,3 +1,4 @@
+<!--Created by Ben Reuveni on 11/16/2015.-->
 <!DOCTYPE html>
 <html>
 <head>
@@ -18,11 +19,12 @@
             var url = document.URL;
             //var params = url.split('?');
             var params = parse_url(url);
-            //console.log(params)
+            console.log(params);
             var imgDir = null;
             var imgList = null;
             var canvas_space = document.getElementById("canvas_holder");
             var canvas_properties = '<canvas id="mainWin" width="600" height="600"></canvas>';
+            var trialCount = 0;
 
 
 
@@ -40,14 +42,22 @@
 
             }else{
                 //console.log('getting session from group number');
+                console.log(params["workerId"]);
+                if (params["workerId"] === undefined){
+                    params["workerId"] = Math.random().toString(16).slice(2).toUpperCase()
+                }
+                console.log(params["workerId"]);
                 ServerHelper.group_session_request(params["group"], params["workerId"]);
+
                 function getSessionByGroup() {
                     if (ServerHelper.group_session_received) {
-                        sessionToken = ServerHelper.group_session_num;
+                        sessionToken = ServerHelper.sessionToken;
                         //console.log(sessionToken.split(" ")[0]);
                         params["session"] = sessionToken.split(" ")[0];
+                        console.log(params["session"]);
 
                         if (params["session"].match("Error")){
+
                             alert("Something seems to have gone wrong. Please press OK and refresh the page.\n\nIf the problem persists, please contact us at: reberlab@gmail.com and include the following in the email:\n\n" + sessionToken )
                         }else {
                             ServerHelper.request_consent_form(params["session"]);
@@ -123,8 +133,10 @@
                     imgDir = cfg["exp_control"].imgPath;
                     //var imgDir = "VisCat_Stims_13_3/";
                     imgList = cfg["exp_control"].stimList;
+                    console.log(imgList);
 
-                    window.requestAnimationFrame(preLoadIsDone);
+                    ServerHelper.request_status(params["session"]);
+                    window.requestAnimationFrame(trial_num_checker);
 
                     canvas_space.style.margin = "auto";
                     canvas_space.innerHTML = canvas_properties;
@@ -133,6 +145,24 @@
                     window.requestAnimationFrame(cfgIsReady);
                 }
             }
+
+
+            function trial_num_checker() {
+
+                if (ServerHelper.status_received) {
+                    var t = ServerHelper.status.split(/\s+/);
+                    for (var i = 0; i < t.length; i++) {
+                        if (t[i] === 'trial:' && (i + 1) < t.length) {
+                            params['trialCount'] = Number(t[i + 1].trim());
+                            i++;
+                        }
+                    }
+                    window.requestAnimationFrame(preLoadIsDone);
+                }else{
+                    window.requestAnimationFrame(trial_num_checker);
+                }
+            }
+
 
 
             // function that checks whether img-preload is done and then invokes the button creation function

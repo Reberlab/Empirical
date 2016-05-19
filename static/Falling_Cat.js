@@ -1,20 +1,26 @@
 /**
- * Created by Ben on 11/16/2015.
+ * Created by Ben Reuveni on 11/16/2015.
  */
 
 
 function startFallingStimsExp(params){
 
+    // checks to see whether we want to "restart" or not. If not, the experiment will always begin from trial 1
+    if (cfg["exp_control"].hasOwnProperty('restart') && cfg["exp_control"].restart == 1){
+        trialCount = params['trialCount'];
+    }else {
+        trialCount = 0;
+    }
 
-    var debug = 0;
+    console.log(images);
 
-
-// this creates the 3 canvases we will use in the exp.
+    // a listener for navigating away from the page. "warn_termination" is in the "Functions" section.
+    window.onbeforeunload = warn_termination;
 
     var current_window_height = window.innerHeight;
     var current_window_width = window.innerWidth;
 
-
+    // this creates the 3 canvases we will use in the exp.
     var canvas_space = document.getElementById("canvas_holder");
     canvas_space.innerHTML = ( '<canvas id="mainWin" width="600" height="600" style = " position: fixed; margin: 20px 0px 0px 35%;  border: 1px solid black"></canvas> ' +
         '<canvas id="basketWin" width="600" height="100" style="position: fixed; margin: 520px 0px 0px 35%;  z-index: 1; border: 1px solid black"></canvas>' +
@@ -22,15 +28,10 @@ function startFallingStimsExp(params){
 
     var lever_win = document.getElementById('leverWin').getContext("2d"); // creates a window reference.
     var basket_win = document.getElementById('basketWin').getContext("2d"); // creates a window reference.
-
     var inst_page = document.getElementById("canvas_holder");
 
-    //lever_win.canvas.style.marginLeft = (((current_window_width - lever_win.canvas.width) / 2) / current_window_width)*100 + '%';
-    //lever_win.canvas.style.marginRight = (((current_window_width - lever_win.canvas.width) / 2) / current_window_width)+'%';
-    //lever_win.canvas.style.marginTop = (((current_window_height - lever_win.canvas.height - 400) / 2)  / current_window_width)+'%';
-
-    //basket_win.canvas.style.margintop = ((current_window_height - basket_win.canvas.height)) + 'px';
-
+    // controls whether information is pushed to the console.
+    var debug = 1;
 
     var canvas_space = document.getElementById("canvas_holder");
     canvas_space.style.float = "";
@@ -42,7 +43,6 @@ function startFallingStimsExp(params){
     var winWidth = mainWin.width;
     var halfW = winWidth / 2;
     var halfH = winHeight / 2;
-    var empiricalMainPage = "http://www.reberlab.org/";
     var corrImg = images[cfg["exp_control"].stimList.length-4];
     var incorrImg = images[cfg["exp_control"].stimList.length-3];
     var basket = images[cfg["exp_control"].stimList.length-1];
@@ -54,7 +54,7 @@ function startFallingStimsExp(params){
     win.fillStyle = "#fFfFfF";
 
 // These variables will end up coming from a .cfg file - These lines need to be modified to refer to the JSON that contains them
-    var desired_OST = (cfg["timings"].stimTimeout / 1000); // in seconds.
+    var desired_OST = (cfg["timings"].stimTimeout); // in seconds.
     //var fixateTimeout = cfg["timings"].fixateTimeout;
     var feedbackTimeout = cfg["timings"].feedbackTimeout;
     var itiTimeout = cfg["timings"].itiTimeout;
@@ -68,13 +68,40 @@ function startFallingStimsExp(params){
     var stimSF = cfg["stim_params"].SF;
     var stimOri = cfg["stim_params"].Ori;
 
+    var bns = cfg["exp_control"].bns;
+
+    if (bns == 1){
+        var trialsBeforeP2 = cfg["exp_control"].trialBeforeP2;
+        var trialsBeforeP3 = cfg["exp_control"].trialBeforeP3;
+
+        var img_input_p1 = images.slice(0,940);
+        var img_input_p2 = images.slice(940, 1881);
+        var stimImg_input_1 = cfg["exp_control"].stimOrder.slice(0,940);
+        var stimImg_input_2 = cfg["exp_control"].stimOrder.slice(940, 1881);
+        var stim_sf_12 = cfg["stim_params"].SF.slice(0,940);
+        var stim_sf_34 = cfg["stim_params"].SF.slice(940,1881);
+        var stim_ori_12 = cfg["stim_params"].Ori.slice(0,940);
+        var stim_ori_34 = cfg["stim_params"].Ori.slice(940,1881);
+        var stimLabels_12 = cfg["exp_control"].stimLabels.slice(0,940);
+        var stimLabels_34 = cfg["exp_control"].stimLabels.slice(940, 1881);
+
+
+        var trial_count_12 = 0;
+        var trial_count_34 = 0;
+    }
 
 // (un)comment this block for debugging
 
-    //var trialBeforeBreak = 6;
-    //var trialsBeforeTest = 8;
-    //var trialsBeforeEnd = 11;
-    var desired_OST = 1.5;
+    // var trialBeforeBreak = 5;
+    //
+    // var trialsBeforeP2 = 5;
+    // var trialsBeforeP3 = 10;
+    // var trialsBeforeTest = 15;
+    // var trialsBeforeEnd = 20;
+    // var feedbackTimeout = 0.1;
+    // var itiTimeout = 0.1;
+    //var desired_OST = 1.5; // normally 1.5
+
 
 // -------------------------------
 
@@ -88,17 +115,24 @@ function startFallingStimsExp(params){
     var masterClock = 0;
     var startTime = 0;
     var endTime = 0;
-    var trialCount = 0;
     var introSlide = 0; // controls which intro text to show (iterates each time in "doBegin").
     var block = 1;
     var NACount = 0;
     var catResp = []; //will hold all 1/0 based on cat answers in order to calculate accuracy at the end
-    var catAcc = 0; // the final number
+    var total_catAcc = 0; // the final number
+    var test_Resp = [];
+    var test_count = [];
+    var test_catAcc = 0;
     var blockRespCat = [];
     var blockAccCat = 0;
     var showFeedback = 1; // controls whether to display feedback or not.
     var showTestText = 0; // controls whether to display test text or break text in onBreak.
     var lever_has_changed = 0;
+    var started = false;
+    var status_info = ["trial: " + trialCount, "date:" + new Date().toString()];
+    var curr_trial = null;
+    var curr_sf = null;
+    var curr_ori = null;
 
 
     var response = {
@@ -110,7 +144,6 @@ function startFallingStimsExp(params){
         "feedback": null,
         "hitMiss": null,
         "duration": 0,
-
         "subj": params["workerId"]
     };
 
@@ -131,6 +164,9 @@ function startFallingStimsExp(params){
     };
 
 
+    // checks the server to see what trial to begin on (in case someone stopped mid-way).
+
+
 // data related stuff
     var data = [];
     var currentdateStart = new Date();
@@ -142,6 +178,8 @@ function startFallingStimsExp(params){
         + currentdateStart.getMinutes() + ":"
         + currentdateStart.getSeconds();
 
+    data.push('Lead Investigator: Ben Reuveni');
+    data.push('IRB protocol # STU00201660');
     data.push('SessionId is: ' + params["session"]);
     data.push('GroupId is: ' + params["group"]);
     data.push('WorkerID is: ' + params["workerId"]);
@@ -161,8 +199,19 @@ function startFallingStimsExp(params){
 
     data.push("trial total_time sf ori stimImg label response feedback hit/miss RT block subj_session_token");
 
-    ServerHelper.upload_data('initial', data);
+    if (trialCount === 0) {
+        if (cfg["exp_control"].hasOwnProperty('upload') && cfg["exp_control"].upload == 0) {
+            console.log('Not uploading');
+            console.log(data);
 
+        }else{
+            status_info = ["trial: " + 3, "date:" + new Date().toString()];
+            ServerHelper.upload_data('initial', data);
+            ServerHelper.upload_data('status', status_info);
+        }
+
+
+    }
 
     if (desired_OST * 1000 > 1000){
         var s = 's'
@@ -233,9 +282,7 @@ function startFallingStimsExp(params){
                         console.log('in doLever');
                         console.log('state is ' + fsm.current);
                     }
-
                     stim.slide_direction = 1;
-
                 }
             }
         }
@@ -295,6 +342,7 @@ function startFallingStimsExp(params){
             document.addEventListener('keydown', doBegin, false);
             //DrawText(introText2);
             win.drawImage(inst_page_2, 0 , 0, canvas.width, canvas.height);
+            started = true;
         }
 
         //else if (introSlide === 2){} // if we need another intro text screen.
@@ -335,6 +383,30 @@ function startFallingStimsExp(params){
         }
     }
 
+    function warn_termination() {
+        // data and status upload
+
+        if (cfg["exp_control"].hasOwnProperty('upload') && cfg["exp_control"].upload == 0) {
+            console.log('Not uploading');
+            console.log(data);
+
+        }else {
+
+            ServerHelper.upload_data('nav away. block: ' + block + ', trial: ' + trialCount, data);
+            var status_info_unload = ["trial: " + trialCount, "date:" + new Date().toString()];
+            ServerHelper.upload_data('status', status_info_unload);
+
+
+            return "Looks like you're attempting to navigate away.\n\n" +
+                "If you're attempting to submit the completed HIT, you can ignore this message.\n\n" +
+                "If you are still working on the experiment, if it's not too much trouble, " +
+                "please click on 'Stay on this Page' or 'Don't Reload' and then feel free to navigate away.\n\n" +
+                "This will allow us to upload any data you've accumulated so far.\n\n" +
+                "Thank you!"
+        }
+        //return "Session not completed yet."
+    }
+
     /* FSM */
 
     var fsm = StateMachine.create({ // Version 2 self-contained.
@@ -364,7 +436,8 @@ function startFallingStimsExp(params){
                 canvas.width = canvas.height*1.7;
                 basket_win.canvas.style.border = "none";
 
-                win.drawImage(inst_page_1, 0 , 0, canvas.width, canvas.height);
+                win.drawImage(images[cfg["exp_control"].stimList.length-6], 0 , 0, canvas.width, canvas.height);
+                //win.drawImage(inst_page_1, 0 , 0, canvas.width, canvas.height);
                 document.addEventListener('keydown', doBegin, false);
             },
 
@@ -391,9 +464,83 @@ function startFallingStimsExp(params){
             },
 
             onstim:  function(event, from, to)      { // show image, wait for key or timeout
-                img = images[trialCount]; // Iterates the image based on trialCount
-                response.stimImg = cfg["exp_control"].stimOrder[trialCount];
+                
+                if (bns == 1) {
+                    console.log("in bns mode");
+                    if (trialCount < trialsBeforeP2){
+                        console.log("in block 1");
+                        img = img_input_p1[trial_count_12];
+                        response.stimImg = stimImg_input_1[trial_count_12];
+                        response.label = stimLabels_12[trial_count_12];
+                        //curr_trial = trial_count_12;
+                        curr_sf = stim_sf_12[trial_count_12];
+                        curr_ori = stim_ori_12[trial_count_12];
+                        trial_count_12++;
 
+                    }else if (trialCount > trialsBeforeP2 && trialCount < trialsBeforeP3){
+                        console.log("in block 2 or 3");
+                        if ( Math.random() > 0.25){
+                            console.log("showing 34s");
+                            img = img_input_p2[trial_count_34];
+                            response.stimImg = stimImg_input_2[trial_count_34];
+                            //curr_trial = trial_count_34;
+                            curr_sf = stim_sf_34[trial_count_34];
+                            curr_ori = stim_ori_34[trial_count_34];
+                            trial_count_34++;
+
+                            if (stimLabels_34[trial_count_34] === 3){
+                                response.label = stimLabels_34[trial_count_34] - 1;
+                            }else if (stimLabels_34[trial_count_34] === 4){
+                                response.label = stimLabels_34[trial_count_34] - 3;
+                            }
+                        }else{
+                            console.log("showing 12s");
+                            img = img_input_p1[trial_count_12];
+                            response.stimImg = stimImg_input_1[trial_count_12];
+                            response.label = stimLabels_12[trial_count_12];
+                            //curr_trial = trial_count_12;
+                            curr_sf = stim_sf_12[trial_count_12];
+                            curr_ori = stim_ori_12[trial_count_12];
+                            trial_count_12++;
+                        }
+                    }else if (trialCount > trialsBeforeP3){
+                        console.log("in block > 3");
+                        if (Math.random() > 0.35){
+                            console.log("showing 34s");
+                            img = img_input_p2[trial_count_34];
+                            response.stimImg = stimImg_input_2[trial_count_34];
+                            //curr_trial = trial_count_34;
+                            curr_sf = stim_sf_34[trial_count_34];
+                            curr_ori = stim_ori_34[trial_count_34];
+                            trial_count_34++;
+
+                            if (stimLabels_34[trial_count_34] === 3){
+                                response.label = stimLabels_34[trial_count_34] - 1;
+                            }else if (stimLabels_34[trial_count_34] === 4){
+                                response.label = stimLabels_34[trial_count_34] - 3;
+                            }
+                        }else{
+                            console.log("showing 12s");
+                            img = img_input_p1[trial_count_12];
+                            response.stimImg = stimImg_input_1[trial_count_12];
+                            response.label = stimLabels[trial_count_12];
+                            //curr_trial = trial_count_12;
+                            curr_sf = stim_sf_12[trial_count_12];
+                            curr_ori = stim_ori_12[trial_count_12];
+                            trial_count_12++;
+                        }
+                    }
+                }else {
+                    console.log("not in bns mode");
+                    img = images[trialCount]; // Iterates the image based on trialCount
+                    response.stimImg = cfg["exp_control"].stimOrder[trialCount];
+                    response.label = stimLabels[trialCount];
+                    //curr_trial = trialCount;
+                    curr_sf = stimSF[trialCount];
+                    curr_ori = stimOri[trialCount];
+                }
+                trialCount++;
+                console.log(response.label);
                 lever_win.clearRect(0, 0, 600, 100);
                 basket_win.drawImage(basket, 100, 0, 145,100);
                 basket_win.drawImage(basket, 369, 0, 145,100);
@@ -407,7 +554,7 @@ function startFallingStimsExp(params){
 
                 if (debug === 1) {
                     console.log('state is ' + fsm.current);
-                    console.log('trail number: ' +trialCount);
+                    console.log('trail number: ' + trialCount);
                 }
 
                 startTime = performance.now();
@@ -491,8 +638,6 @@ function startFallingStimsExp(params){
                 // scores the response
                 if (response.response === 1 || response.response === 2 || response.response === 'NA' ) {
 
-                    response.label = stimLabels[trialCount];
-
                     if (debug === 1) {
                         console.log('response was ' + response.response);
                         console.log('label is ' + response.label);
@@ -557,6 +702,7 @@ function startFallingStimsExp(params){
                             fsm.showITI();
                         }, feedbackTimeout);
                     }else{
+                        test_Resp.push(1);
                         fsm.showITI();
                     }
 
@@ -569,6 +715,7 @@ function startFallingStimsExp(params){
                             fsm.showITI();
                         }, feedbackTimeout);
                     }else{
+                        test_Resp.push(0);
                         fsm.showITI();
                     }
                 }
@@ -581,23 +728,21 @@ function startFallingStimsExp(params){
                 if (debug === 1) {
                     console.log('state is ' + fsm.current);
                 }
-                data.push((response.trial+1) + " " + response.totalTime + " " + stimSF[trialCount] + " " + stimOri[trialCount] + " "
+                data.push((response.trial+1) + " " + response.totalTime + " " + curr_sf + " " + curr_ori + " "
                     + response.stimImg + " " + response.label + " " + response.response + " " + response.feedback + " "
                     + response.hitMiss + " " + response.duration + " " + block + " " + response.subj);
 
                 response.response = 'NA';
-                trialCount++;
                 window.setTimeout(function(){
                     win.clearRect(0,0, winWidth, winHeight); 
                     if (trialCount === trialsBeforeEnd){
                         fsm.showFinish();
-                    }
-                    else if (trialCount % trialBeforeBreak === 0){
-                        fsm.showBreak();
-
                     }else if (trialCount % trialsBeforeTest === 0){
                         showFeedback = 0;
                         showTestText = 1;
+                        test_count = 0;
+                        fsm.showBreak();
+                    }else if (trialCount % trialBeforeBreak === 0) {
                         fsm.showBreak();
 
                     }else{
@@ -612,9 +757,17 @@ function startFallingStimsExp(params){
                 win.clearRect(0,0, winHeight, winWidth);
                 if (showTestText === 1){
                     DrawText(testText);
-                    ServerHelper.upload_data('partial. block: '+ block ,data);
-                    block++;
+                    status_info = ["trial: " + trialCount, "date:" + new Date().toString()];
 
+                    if (cfg["exp_control"].hasOwnProperty('upload') && cfg["exp_control"].upload == 0) {
+                        console.log('Not uploading');
+                        console.log(data);
+                    }else {
+                        ServerHelper.upload_data('partial. block: ' + block + ', trial: ' + trialCount, data);
+                        ServerHelper.upload_data('status', status_info);
+
+                    }
+                    block++;
                     showTestText = 0;
                 }else if (showTestText === 0) {
 
@@ -627,7 +780,15 @@ function startFallingStimsExp(params){
                         '\n\nPress any key to continue.';
 
                     DrawText(breakText);
-                    ServerHelper.upload_data('partial. block: ' + block, data);
+                    status_info = ["trial: " + trialCount, "date:" + new Date().toString()];
+
+                    if (cfg["exp_control"].hasOwnProperty('upload') && cfg["exp_control"].upload == 0) {
+                        console.log('Not uploading');
+                        console.log(data);
+                    }else {
+                        ServerHelper.upload_data('partial. block: ' + block + ', trial: ' + trialCount, data);
+                        ServerHelper.upload_data('status', status_info);
+                    }
                     block++;
                     blockRespCat = [];
                     blockAccCat = 0;
@@ -649,29 +810,52 @@ function startFallingStimsExp(params){
                     + currentdateEnd.getSeconds();
                 data.push(dateTimeEnd);
 
-                for (x=0; x < catResp.length; x++){
-                    catAcc += catResp[x];
+                for (x=0; x < test_Resp.length; x++){
+                    test_catAcc += test_Resp[x];
                 }
-                catAcc = (catAcc / (catResp.length)) * 100;
+                test_catAcc = (test_catAcc / (test_Resp.length)) * 100;
                 if (debug === 1) {
-                    console.log('Total Acc is: ' + catAcc);
+                    console.log('Test Acc is: ' + test_catAcc);
+                    console.log(test_Resp.length)
                 }
 
-                ServerHelper.upload_data('complete. NAs: ' + NACount + ', CatAcc: ' + catAcc + '%', data);
 
+                for (x=0; x < catResp.length; x++){
+                    total_catAcc += catResp[x];
+                }
+                total_catAcc = (total_catAcc / (catResp.length)) * 100;
+                if (debug === 1) {
+                    console.log('Total Acc is: ' + total_catAcc);
+                }
+
+                console.log('sending data');
+                status_info = ["trial: " + trialCount, "date:" + new Date().toString()];
+
+                if (cfg["exp_control"].hasOwnProperty('upload') && cfg["exp_control"].upload == 0) {
+                    console.log('Not uploading');
+                    console.log(data);
+                }else {
+                    ServerHelper.upload_data('status', status_info);
+                    ServerHelper.upload_data('complete. NAs: ' + NACount + ', CatAcc: ' + total_catAcc.toFixed(2) + '%', data);
+                }
+
+
+
+
+                window.onbeforeunload = null;
 
                 // decides whether to show a "Green" - You're Good, or "Red" You're Bad end text.
 
-                if (catAcc < 52 || NACount > 10) {
+                if (total_catAcc < 52 || NACount > 10) {
                     win.fillStyle = 'red';
                     endText = 'Thank you for participating in this study.\n\n' +
-                        'Your Categorization accuracy was: ' + Math.round(catAcc) + '%.\n\n' +
+                        'Your Categorization accuracy was: ' + Math.round(total_catAcc) + '%.\n\n' +
                         'We will need to review your results before approving payment.\n\n' +
                         'Thank you for participating.'
                 } else {
                     win.fillStyle = 'green';
                     endText = 'Thank you for participating in this study.\n\n' +
-                        'Your Categorization accuracy was: ' + Math.round(catAcc) + '%.\n\n' +
+                        'Your Categorization accuracy was: ' + Math.round(total_catAcc) + '%.\n\n' +
                         'Great job!'
                 }
 
@@ -695,8 +879,13 @@ function startFallingStimsExp(params){
 
                     var formString = "<form action=\"" + url + "\" method=\"POST\"><input type=\"hidden\" name=\"assignmentId\" value=\"" + params['assignmentId'] +
                         "\">\n\nPress Submit to finish this experiment <input type=\"hidden\" name=\"dataLog\" " +
-                        "value=\" Cat Acc is: " + catAcc + "%, DT Acc is: " + dtAcc + "%, NAs: " + NACount +"\"> <input type=\"submit\" value=\"Submit\"></form>";
+                        "value=\" Total Cat Acc is: " + total_catAcc.toFixed(2) + "%, Last Block Acc is: " + test_catAcc.toFixed(2) + "%, NAs: " + NACount +"\"> <input type=\"submit\" value=\"Submit\"></form>";
 
+
+                    mturk_form.style.marginLeft = '35%';
+                    mturk_form.style.marginTop = '10px';
+                    mturk_form.style.paddingTop = '50px';
+                    mturk_form.style.paddingBottom = '50px';
                     mturk_form.style.fontSize = "30px";
                     mturk_form.style.color = "yellow";
                     mturk_form.innerHTML = formString;

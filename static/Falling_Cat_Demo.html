@@ -32,6 +32,7 @@
                 function getSessionByGroup() {
                     if (ServerHelper.group_session_received) {
                         sessionToken = ServerHelper.group_session_num;
+                        console.log(sessionToken);
                         params["session"] = sessionToken.split(" ")[0];
                         console.log(params['session']);
                         ServerHelper.request_config(params["session"]);

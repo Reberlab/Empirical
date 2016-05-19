@@ -37,7 +37,7 @@ function img_preload(imgList, imgDir) { // image_list[], image_dir; url to retri
     // " "stim_7_0.598649_46.124084.png" " - again, note the " " around the string.
 
     // This should be an int corresponding to the total number of images to load.
-    var totalImages = imgList.length+2;
+    var totalImages = imgList.length+5;
     var winHeight = mainWin.height;
     var winWidth = mainWin.width;
     var halfW = winWidth / 4;
@@ -46,9 +46,9 @@ function img_preload(imgList, imgDir) { // image_list[], image_dir; url to retri
     var pleaseWait = "Please wait while images are being loaded.";
     var pleaseWait2 = "If the next screen contains a grey box with ";
     var pleaseWait3 = "an outline, please refresh the page (F5).";
-    var img_check = 1
-    var img_checked = 0
-    var articulating_splines = "Articulating Splines"
+    var img_check = 1;
+    var img_checked = 0;
+    var articulating_splines = "Articulating Splines";
     var clickToBegin = "Click to begin";
 
     // the following progress bar functions are described here:
