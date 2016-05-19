@@ -12,7 +12,6 @@ function startFallingStimsExp(params){
         trialCount = 0;
     }
 
-    console.log(images);
 
     // a listener for navigating away from the page. "warn_termination" is in the "Functions" section.
     window.onbeforeunload = warn_termination;
@@ -22,9 +21,9 @@ function startFallingStimsExp(params){
 
     // this creates the 3 canvases we will use in the exp.
     var canvas_space = document.getElementById("canvas_holder");
-    canvas_space.innerHTML = ( '<canvas id="mainWin" width="600" height="600" style = " position: fixed; margin: 20px 0px 0px 35%;  border: 1px solid black"></canvas> ' +
-        '<canvas id="basketWin" width="600" height="100" style="position: fixed; margin: 520px 0px 0px 35%;  z-index: 1; border: 1px solid black"></canvas>' +
-        '<canvas id="leverWin" width="600" height="100" style="position: fixed; margin: 400px 0px 0px 35%; z-index: 2"></canvas>');
+    canvas_space.innerHTML = ( '<canvas id="mainWin" width="600" height="600" style = " position: fixed; margin: 20px 0px 0px 10%;  border: 1px solid black"></canvas> ' +
+        '<canvas id="basketWin" width="600" height="100" style="position: fixed; margin: 520px 0px 0px 10%;  z-index: 1; border: 1px solid black"></canvas>' +
+        '<canvas id="leverWin" width="600" height="100" style="position: fixed; margin: 400px 0px 0px 10%; z-index: 2"></canvas>');
 
     var lever_win = document.getElementById('leverWin').getContext("2d"); // creates a window reference.
     var basket_win = document.getElementById('basketWin').getContext("2d"); // creates a window reference.
@@ -100,7 +99,7 @@ function startFallingStimsExp(params){
     // var trialsBeforeEnd = 20;
     // var feedbackTimeout = 0.1;
     // var itiTimeout = 0.1;
-    //var desired_OST = 1.5; // normally 1.5
+    // var desired_OST = 1.5; // normally 1.5
 
 
 // -------------------------------
@@ -233,6 +232,10 @@ function startFallingStimsExp(params){
         var testText = '\n\n\n\nThe following block is the final test. You will no longer be given feedback for your choices.' +
             '\n\nPlease press any button to begin.';
 
+        var intervention = "\nIt seems like you're not doing as well as you were in the first block." +
+            "\n\nWe have found that people tend to do best in these circumstances when they 'go with their gut' or even guess." +
+            "\nTry that out as best you can.\n\nPress any key to continue.";
+
 
 
     var breakText = '';
@@ -348,7 +351,7 @@ function startFallingStimsExp(params){
         //else if (introSlide === 2){} // if we need another intro text screen.
 
         else {
-            canvas.style.marginLeft = "35%";
+            canvas.style.marginLeft = "10%";
             canvas.height = 600;
             canvas.width = 600;
             basket_win.canvas.style.border = "1px solid black";
@@ -431,7 +434,7 @@ function startFallingStimsExp(params){
                 //alert('987654321');
                 //DrawText(introText);
                 //canvas.style.float = "";
-                canvas.style.marginLeft = "20%";
+                canvas.style.marginLeft = "10%";
                 canvas.height = 700;
                 canvas.width = canvas.height*1.7;
                 basket_win.canvas.style.border = "none";
@@ -780,6 +783,9 @@ function startFallingStimsExp(params){
                         '\n\nPress any key to continue.';
 
                     DrawText(breakText);
+                    if (bns === 1 && trialCount === trialsBeforeP3){
+                        DrawText(intervention);
+                    }
                     status_info = ["trial: " + trialCount, "date:" + new Date().toString()];
 
                     if (cfg["exp_control"].hasOwnProperty('upload') && cfg["exp_control"].upload == 0) {
