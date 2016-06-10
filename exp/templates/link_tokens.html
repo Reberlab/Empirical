@@ -27,7 +27,7 @@
     {% endif %}
 
     <h3>Session tokens</h3>
-    <p>Overall status: {{ status.0 }} tokens, {{ status.1 }} available for new data collection.</p>
+    <p>Overall status: {{ status.0 }} tokens to be used, {{ status.1 }} total, {{ status.2 }} with no data collection.</p>
     <table>
     <tr><th>Session token</th><th>Data status</th><th>Data Records</th></tr>
     {% for t in tokens %}

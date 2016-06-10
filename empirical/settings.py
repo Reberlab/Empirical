@@ -94,10 +94,9 @@ USE_TZ = True
 LOGIN_URL='/login/'
 
 # These control how Empirical interacts with outside sites
-FORCE_EXTERNAL_APP_LINKS = False   # forces external links to be hardcoded to https://reberlab.org/ instead of environment (for testing)
-MTURK_SANDBOX_HOST = 'mechanicalturk.sandbox.amazonaws.com'
-MTURK_HOST = 'mechanicalturk.amazonaws.com'
-MTURK_SERVER = MTURK_SANDBOX_HOST
+#MTURK_SANDBOX_HOST = 'mechanicalturk.sandbox.amazonaws.com'
+#MTURK_HOST = 'mechanicalturk.amazonaws.com'
+#MTURK_SERVER = MTURK_SANDBOX_HOST
 
 
 # Static files (CSS, JavaScript, Images)

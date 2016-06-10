@@ -24,6 +24,11 @@
     {% endfor %}
 
     </table>
+    <ul>
+    {% for i in log %}
+        <li>{{ i }}</li>
+    {% endfor %}
+    </ul>
     </br>
     <a href="{% url 'new_config' %}">Add a new configuration file manually</a>
     </br>
