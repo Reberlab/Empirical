@@ -1,11 +1,48 @@
 {% extends 'base_filer.html' %}
 
+
 {% block content %}
 
-<h1>Show list of files stored in the database</h1>
+    <h2>Upload links</h2>
+
+    <p><a href="{% url 'prep_upload' %}">Upload Experiment, .zip file with cfgs and/or stimuli</a></p>
+    <p><a href="{% url 'upload_images' %}">Upload Stimuli via .zip file</a></p>
+
+    <h2>Stimulus files stored</h2>
+
+    <h2>Images</h2>
+    <table>
+    <tr><th>Directory name</th><th>Number of files</th><th>First 25 files</th></tr>
+    {% for dir,files in media %}
+        <tr>
+        <td>{{ dir }}</td>
+        <td align="center">{{ files|length }}</td>
+        <td>
+            {% for i in files|slice:":25" %}
+                <a href="/images/{{ dir }}/{{ i }}">{{ i }}</a>
+            {% endfor %}
+            {% if files|length > 25 %}
+                ...
+            {% endif %}
+        </td>
+        </tr>
+    {% endfor %}
+    </table>
+
+    <h2>Zip_tmp contents</h2>
+    <p>Link to cleanup zip tmp files goes here</p>
+    <table>
+    <tr><th>File name</th></tr>
+    {% for i in tmp %}
+        <tr>
+        <td>{{ i }}</td>
+        </tr>
+    {% endfor %}
+    </table>
+
+    <h2>Database</h2>
     <table>
     <tr><th>File name</th><th>User</th><th>Upload date</th><th>Size</th></tr>
-
     {% for i in file_list %}
         <tr>
         <td>{{ i.filename }}</td>
@@ -14,7 +51,8 @@
         <td>{{ i.contents.length }}</td>
         </tr>
     {% endfor %}
-
     </table>
+
+
 
 {% endblock %}

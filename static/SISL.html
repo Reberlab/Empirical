@@ -915,7 +915,7 @@
         var params=parse_url(url); // function in server.js
 
         if (params=={}) {
-            // What to do here?  There is no config file to even render the screen.  Default cfg file from Empirical?
+            // Experiment can't run without a config file
             terminate("No configuation information");
             return;
         }
@@ -929,13 +929,25 @@
             demo_mode = true;
             if (!cfg.hasOwnProperty('demo')) cfg['demo'] = 'true';
         } else {
-            // set up the warn before leaving hook, but only if not demo
+            // if not demo, set up the warn before leaving hook
             window.onbeforeunload=warn_termination;
+            // enter id if needed
+            if(cfg.hasOwnProperty('prompt') || (cfg.hasOwnProperty('workerId')) && cfg['workerId']=='prompt') {
+                console.log("Getting workerID");
+                // prompt for name/sona id
+                workerId = prompt("Please enter your SONA participant ID number","SONA_" + d);
+                name_ok = /^[a-z0-9_]+$/i.test(workerId);
+                while (!name_ok) {
+                    workerId = prompt("User id can only have numbers, letters, underscore:","SONA_" + d);
+                    name_ok = /^[a-z0-9_]+$/i.test(workerId);
+                }
+            }
         }
         if (initialized==false) { // if this gets run after initialization, something is off
-            preload_experiment();
-            console.log("Loaded");
             initialized=true;
+            preload_experiment();
+            //console.log("Loaded");
+            //start();
         }
     }
 

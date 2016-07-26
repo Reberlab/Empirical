@@ -29,7 +29,6 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'uploader',
     'exp',
     'filer',
 )
@@ -93,10 +92,7 @@ USE_TZ = True
 
 LOGIN_URL='/login/'
 
-# These control how Empirical interacts with outside sites
-#MTURK_SANDBOX_HOST = 'mechanicalturk.sandbox.amazonaws.com'
-#MTURK_HOST = 'mechanicalturk.amazonaws.com'
-#MTURK_SERVER = MTURK_SANDBOX_HOST
+VERSION="Empirical 0.2"
 
 
 # Static files (CSS, JavaScript, Images)

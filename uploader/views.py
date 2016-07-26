@@ -19,6 +19,11 @@ def is_image_file(fn):
 
 # If request.method == POST, then this is being called with a filled form to be processed
 #  Otherwise, post the form to be filled in
+
+# to do: fix expName connection/syntax
+#  remove 'copies' in upload and upload review
+#  create Experiment object for new .zip uploads containing non-image files
+
 @login_required
 def index(request):
     if request.method=="POST":
@@ -104,7 +109,8 @@ def unpack_review(request):
                         unpack_log.append("Not extracting image file %s, already exists" % f.filename)
                 else: # non-image files are assumed to be config files, extract to memory and store in session db
                     fp = zf.open(f.filename)
-                    cfg=fp.read()
+                    raw_cfg=fp.read()
+                    cfg=raw_cfg.encode('utf-8','ignore') # to avoid getting db breaking characters stored by accident
                     fp.close()
                     for i in range(reps):
                         e = Session.objects.create_session(name=f.filename,configFile=cfg,expName=experiment_name)

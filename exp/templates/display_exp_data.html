@@ -1,18 +1,31 @@
 {% extends "base_report.html" %}
 
 {% block content %}
-    <h1>All data for {{ expName }}</h1>
-    <p><a href="{%  url 'download' sessionToken %}">Download all experiment data</a></p>
-    </br>
+    <h2>Experiment Name: {{ exp.name }}</h2>
+    <ul>
+    <li>Created by {{ exp.user }} on {{ exp.creationDate }}</li>
+    <li>Parent study {{ parent.name }}</li>
+    <li>Experiment app {{ parent.appletName }}</li>
+    <li>Group token {{ exp.groupToken }}</li>
+    <li>Recycle {{ exp.recycle }}</li>
+    <li>Require unique id {{ exp.unique_id }}</li>
+    </ul>
+    <ul>
+    <li><a href="{%  url 'download_experiment' exp.pk %}">Download all experiment data</a></li>
+    {% for t in events %}
+        <li><a href="{%  url 'download_experiment' exp.pk t %}">Download all experiment data of type [{{ t }}]</a></li>
+    {% endfor %}
+    </ul>
+    <br/>
 
     <table>
-    <tr><th>Session Token</th><th>Type</th><th>Id</th><th>Date</th><th>Content</th></tr>
+    <tr><th>Session Token</th><th>Id</th><th>Type</th><th>Date</th><th>Content</th></tr>
 
     {% for r in reports %}
         <tr>
-        <td valign="top" align="center"><a href="{% url 'display_data' r.0 %}">{{ r.0 }}</a></td>
-        <td valign="top" align="center">{{ r.1 }}</td>
-        <td valign="top" align="center"><a href="{% url 'display_data' r.0 r.2 %}">{{ r.2 }}</a></td>
+        <td valign="top" align="center"><a href="{% url 'session_data' r.0 %}">{{ r.0 }}</a></td>
+        <td valign="top" align="center"><a href="{% url 'session_data' r.0 r.1 %}">{{ r.1 }}</a></td>
+        <td valign="top" align="center">{{ r.2 }}</td>
         <td valign="top" align="center">{{ r.3 }}</td>
         <td><pre>{{ r.4 }}</pre></td>
         </tr>

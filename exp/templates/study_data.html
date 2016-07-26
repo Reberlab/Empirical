@@ -1,0 +1,25 @@
+{%  extends "base_report.html" %}
+
+{%  block content %}
+    <h2>Data view for Study <b>{{ study.name }}</b> </h2>
+    <p>Created by {{ study.user }} on {{ study.creationDate }}</p>
+    <p>Applet to run with this study {{ study.appletName }}</p>
+
+    <table>
+    <tr><th>Experiment name</th><th>URL Token</th><th>Creation date</th><th>Available Sessions</th>
+        <th>Total sessions</th><th>Number of data records</th></tr>
+
+    {% for i,count in exp_list %}
+        <tr>
+        <td><a href="{% url 'experiment_data' i.pk %}"><b> {{ i.name }}</b></a></td>
+        <td>{{ i.groupToken }}</td>
+        <td>{{ i.creationDate }}</td>
+        <td align="center">{{ i.numTokens }}</td>
+        <td align="center">{{ i.totalTokens }}</td>
+        <td align="center">{{ count }}</td>
+        </tr>
+    {% endfor %}
+    </table>
+
+    {{ log }}
+{% endblock content %}

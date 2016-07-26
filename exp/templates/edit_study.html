@@ -1,0 +1,25 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <h2>Edit/Create Study</h2>
+
+    <form action="#" method="post" enctype="multipart/form-data">
+        {% csrf_token %} {{ form.as_p }}
+        <input type="submit" value="Save" />
+    </form>
+
+    {% if consent %}
+        {% if consent.Error %}
+            <h3>Error: {{ consent.Error }}</h3>
+        {% else %}
+            <h3>New consent form added</h3>
+            <table><tr><th>Key</th><th>Value</th></tr>
+            {% for key,value in consent.consent_form.items %}
+                <tr><td>{{ key }}</td><td>{{ value }}</td></tr>
+            {% endfor %}
+            </table>
+        {%  endif %}
+    {% endif %}
+
+
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends 'base_filer.html' %}
+
+{% block content %}
+
+    <h2>Select the study the session information will be associated with</h2>
+    <p>Study must be selected even if a new Experiment is being created.</p>
+
+    <form action="#" method="post" enctype="multipart/form-data">
+        {% csrf_token %} {{form}}
+        <input type="submit" value="Select" />
+    </form>
+
+{%  endblock %}

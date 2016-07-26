@@ -1,10 +1,10 @@
 /**
- * Created by drlemur on 8/5/2015.
+ * Created by PJR on 8/5/2015.
  */
 
 var DEVELOPMENT_SERVER=true;
-var LIVE_MTURK='https://www.mturk.com/mturk/externalSubmit';
-var SANDBOX_MTURK='https://workersandbox.mturk.com/mturk/externalSubmit';
+//var LIVE_MTURK='https://www.mturk.com/mturk/externalSubmit';
+//var SANDBOX_MTURK='https://workersandbox.mturk.com/mturk/externalSubmit';
 
 var server_debug = true;
 
@@ -19,7 +19,6 @@ function parse_url(url){
         else if(t.length==2) params[t[0]]=t[1];
         else params[t[0]]= t.slice(1);
     }
-
     return(params);
 }
 
@@ -27,12 +26,15 @@ var ServerHelper = {
     server_url: (DEVELOPMENT_SERVER) ? "http://127.0.0.1:8000/exp/" : "https://www.reberlab.org/exp/",
     image_url: (DEVELOPMENT_SERVER) ? "http://127.0.0.1:8000/images/" : "https://www.reberlab.org/images/",
     xmlhttp: new XMLHttpRequest(),
-    //mturk_x: new XMLHttpRequest(),
+    sessionToken: "",
     config_file: "",
+    consent_form: "",
+    workerId: "",
     error: "",
     response_log: "",
     status: "",
     group_session_num: "",
+    config_error: false,
     group_session_requested: false,
     group_session_received: false,
     config_requested: false,
@@ -40,12 +42,59 @@ var ServerHelper = {
     consent_requested: false,
     consent_received: false,
     upload_requested: false,
+    start_requested: false,
+    start_received: false,
     data_logged: false,
     upload_in_progress: false,
     upload_queue: [],
     upload_connection_log: '',
     groupToken: '', // these just used for logging here
-    sessionToken: '',
+
+
+    start_request: function(groupToken, workerId) {
+        if (this.start_requested) {
+            if (server_debug) console.log("Multiple calls to start_request");
+            return;
+        }
+        this.groupToken = groupToken;
+        if (workerId=='') {
+            var start_request_url = this.server_url + 'start/' + this.groupToken;
+        } else {
+            start_request_url = this.server_url + 'start/' + this.groupToken + '/' + this.workerId;
+        }
+        this.xmlhttp.addEventListener('load', this.start_receive);
+        this.xmlhttp.open("GET", start_request_url, true);
+        this.xmlhttp.send();
+        this.start_requested = true;
+    },
+
+    start_receive: function() {
+        if (this.start_received || this.config_received) {
+            if (server_debug) console.log("Multiple calls to start_receive");
+            return;
+        }
+        if (ServerHelper.xmlhttp.readyState == 4) {
+            ServerHelper.start_received = true;
+            if (ServerHelper.xmlhttp.status == 200) {
+                var response = ServerHelper.xmlhttp.responseText;
+                parser = new DOMParser();
+                xmlDoc = parser.parseFromString(response,"text/xml");
+                console.log("text: "+response.slice(0,200));
+                // the response is an XML object with the session token, workerid,  config file and consent form
+                ServerHelper.sessionToken = xmlDoc.getElementsByTagName("Empirical:session")[0].childNodes[0].nodeValue;
+                ServerHelper.workerId = xmlDoc.getElementsByTagName("Empirical:workerid")[0].childNodes[0].nodeValue;
+                ServerHelper.config_file = xmlDoc.getElementsByTagName("Empirical:config")[0].childNodes[0].nodeValue;
+                ServerHelper.consent_form = xmlDoc.getElementsByTagName("Empirical:consent")[0].childNodes[0].nodeValue;
+                console.log("session "+ ServerHelper.sessionToken);
+                console.log("worker "+ServerHelper.workerId);
+                console.log("config "+ServerHelper.config_file.slice(0,200));
+                // what happens if anything isn't parse properly?
+            } else {
+                ServerHelper.config_error=true;
+                ServerHelper.error = ServerHelper.xmlhttp.statusText;
+            }
+        }
+    },
 
     group_session_request: function (groupToken, workerId) {
         if (this.group_session_requested) {
@@ -94,7 +143,7 @@ var ServerHelper = {
         this.config_requested = true;
     },
 
-    get_config: function () { // this function needs to reference the ServerHelper object directly, 'this.' doesn't work b/c called as event?
+    get_config: function () {
         if (ServerHelper.config_received) {
             if (server_debug) console.log("Multiple calls to config received");
             return;

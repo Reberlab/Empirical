@@ -1,0 +1,74 @@
+{% extends 'base_filer.html' %}
+
+{% block content %}
+
+    <h2>Upload .zip file with session information</h2>
+    <h3>Either select an Experiment to add to, or create new</h3>
+    <ul>
+    <li>File needs to be in .zip format</li>
+    <li>Each text file in the archive will be entered as a separate cfg file</li>
+    <li>Image files included will be uploaded into a media subdirectory</li>
+    </ul>
+
+    <p>This Experiment is linked to study {{ study }}</p>
+
+    <form action="#" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <fieldset>
+            <div class="fieldWrapper">
+                {{ form.zip.errors }}
+                {{ form.zip.label_tag }}
+                {{ form.zip }}
+            </div>
+            <div class="fieldWrapper">
+                {{ form.study.errors }}
+                {{ form.study }}
+            </div>
+        </fieldset>
+        <fieldset>
+            <div class="fieldWrapper">
+                {{ form.exp.errors }}
+                {{ form.exp.label_tag }}
+                {{ form.exp }}
+            </div>
+            <div class="fieldWrapper">
+                {{ form.exp_restrict.errors }}
+                {{ form.exp_restrict.label_tag }}
+                {{ form.exp_restrict }}
+            </div>
+        </fieldset>
+        <fieldset>
+            <p>These values create a new Experiment (overriding selection)</p>
+            <div class="fieldWrapper">
+                {{ form.exp_name.errors }}
+                {{ form.exp_name.label_tag }}
+                {{ form.exp_name }}
+            </div>
+            <div class="fieldWrapper">
+                {{ form.exp_recycle.errors }}
+                {{ form.exp_recycle.label_tag }}
+                {{ form.exp_recycle }}
+            </div>
+            <div class="fieldWrapper">
+                {{ form.exp_unique_id.errors }}
+                {{ form.exp_unique_id.label_tag }}
+                {{ form.exp_unique_id }}
+            </div>
+        </fieldset>
+        <fieldset>
+            <p>For images included in .zip, select directory or enter new</p>
+            <div class="fieldWrapper">
+                {{ form.image_dir.errors }}
+                {{ form.image_dir.label_tag }}
+                {{ form.image_dir }}
+            </div>
+            <div class="fieldWrapper">
+                {{ form.image_dir_choice.errors }}
+                {{ form.image_dir_choice.label_tag }}
+                {{ form.image_dir_choice }}
+            </div>
+        </fieldset>
+        <input type="submit" value="Upload" />
+    </form>
+
+{%  endblock %}

@@ -1,0 +1,18 @@
+{% extends 'base_filer.html' %}
+
+{% block content %}
+
+    <h2>Zip file uploaded</h2>
+    <ul>
+    <p>Log of events</p>
+    {% for i in log %}
+        <li>{{ i }}</li>
+    {% endfor %}
+    </ul>
+
+    {% if exp %}
+        <p><a href="{% url 'one_experiment' exp.pk %}">Go to {{ exp.name }}</a></p>
+    {%  endif %}
+    <p><a href="{% url 'filer_index' %}">Return to index</a></p>
+
+{%  endblock %}

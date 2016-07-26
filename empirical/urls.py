@@ -25,10 +25,8 @@ urlpatterns = [
     url(r'^$', views.index, name='index'),
     url(r'^home/', views.home, name='home'),
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^uploader/', include('uploader.urls'),name='uploader'),
     url(r'^exp/', include('exp.urls'), name='exp'),
     url(r'^file/', include('filer.urls'), name='filer'),
-    #url(r'^', include('django.contrib.auth.urls')),
     url(r'^login/$', auth_views.login, {'template_name': 'login.html'}),
     url(r'^logout/$', auth_views.logout, {'next_page': 'index'}, name='auth_logout'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

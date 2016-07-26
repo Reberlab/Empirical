@@ -2,22 +2,26 @@
 
 {% block content %}
     <h1>Session {{ session.name }}, {{ session.sessionToken }}</h1>
-    <h3>Part of experiment {{ session.expName }}</h3>
+    <h3>Part of experiment {{ exp.name }}</h3>
     <h3>Created on {{ session.creationDate }}</h3>
+    <p><a href="{% url 'one_experiment' exp.pk %}">Return to <b>{{ exp.name }}</b> list</a></p>
 
     {% if reports|length > 0 %}
         <hr>
         <p>{{ reports|length }} report events found</p>
+        <ul>
         {% for d in reports %}
             <li><a href="{% url 'display_data' session.sessionToken d.pk %}">{{ d.eventType }} at {{ d.uploadDate }}<a></a></li>
         {% endfor %}
+        </ul>
         <hr>
+    {% else %}
+        <p>No data.</p>
     {% endif %}
 
     <ul>
     <li><a href="{% url 'edit_config' session.sessionToken %}">Edit configuration</a></li>
     <li><a href="{% url 'copy_config' session.sessionToken %}">Copy configuration file</a></li>
-    <li><a href="{% url 'display_exp_info' session.sessionToken %}">Return to <b>{{ session.expName }}</b> list</a></li>
     </ul>
     <p>Configuration file</p>
     <pre>{{ session.configFile }}</pre>

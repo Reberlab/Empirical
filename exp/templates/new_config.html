@@ -1,16 +1,17 @@
 {% extends "base_report.html" %}
 
 {% block content %}
-    <h1>Create Configuration File</h1>
+    <h1>Create/Edit Configuration File</h1>
+    <p>Config will be added to Experiment {{ exp.name }}</p>
     {% if sessionToken %}
-        <p><a href="{% url 'display_exp_info' sessionToken %}">Cancel</a></p>
+        <p><a href="{% url 'one_session' sessionToken %}">Cancel</a></p>
     {% else %}
-        <p><a href="{% url 'exp_index' %}">Cancel</a></p>
+        <p><a href="{% url 'one_experiment' exp.pk %}">Cancel</a></p>
     {% endif %}
-    </br>
+    <br/>
     <form action="#" method="post" enctype="multipart/form-data">
         {% csrf_token %} {{ form }}
-        <input type="submit" value="Upload" />
+        <input type="submit" value="Save" />
     </form>
 
 {%  endblock %}

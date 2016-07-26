@@ -1,0 +1,22 @@
+{%  extends "base_report.html" %}
+
+{%  block content %}
+    <h1>Available Studies List</h1>
+    <table>
+    <tr><th>Study name</th><th>Study creator</th><th>Creation date</th><th>Applet name</th></tr>
+
+    {% for i in studies %}
+        <tr>
+        <td><a href="{% url 'one_study' i.id %}"><b> {{ i.name }}</b></a></td>
+        <td>{{ i.user }}</td>
+        <td>{{ i.creationDate }}</td>
+        <td>{{ i.appletName }}</td>
+        </tr>
+    {% endfor %}
+
+    </table>
+    </br>
+    <a href="{% url 'edit_study' %}">Create a new Study</a>
+    </br>
+    <a href="{% url 'security_list' %}">List of Suspicious Upload Events</a>
+{% endblock content %}
