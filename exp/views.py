@@ -7,7 +7,7 @@ from exp.models import Session, Report, ReportForm, Study, StudyForm, Security, 
 from datetime import date, datetime
 import time
 import json
-
+from django.templatetags.static import static
 
 from app_views import *
 from data_views import *
