@@ -122,8 +122,8 @@
                 } else {
                     message(['Rate how much you like the object in the picture',
                         'On a scale from 1 to 5',
-                        'Where 5 means you like the picture',
-                        'And 1 means you dislike the picture']);
+                        'Where 5 means you like the word',
+                        'And 5 means you dislike the word']);
                     //show_picture();
                 }
 
@@ -139,7 +139,7 @@
                 }
             }
             if (state=='study_feedback') {
-                //console.log("Feedback for trial " + (trial_number - 1));
+                console.log("Feedback for trial " + (trial_number - 1));
                 if (cfg['stimCondition'] == 'words') show_word(cfg['wordList'][trial_number - 1]);
                 else show_picture(cfg['imageList'][trial_number-1]);
                 ctx.font = "24px Arial";
@@ -154,7 +154,7 @@
             }
         } else if (state=='delay') {
             // impose experimental delay between study and test
-            //message(['Switching tasks...']);
+            message(['Switching tasks...']);
             requestId = window.requestAnimationFrame(start_trivia);
             //start_trivia();
             //window.cancelAnimationFrame(requestId);
@@ -178,7 +178,7 @@
             'Some people rated how much they liked', 'the word or picture while others',
                 'made a surface judgement about color','or number of vowels.',
             'We hypothesized that rating liking','would lead to better memory',
-            'and that the pictures would be','remembered better than words.','',
+            'and that the pictures would be','remembered better than words.',
             'You can ask about the results with','the person who referred you here',
             'when we are finished with our class study.']);
             end_session();
@@ -214,7 +214,6 @@
                 // check for ende of study phase to change state
                 trial_number++;
                 if (trial_number>=cfg['study_trials']) {
-                    //ServerHelper.upload_data('partial',response_log);
                     state='delay';
                 } else {
                     last_response='Your response '+k;
@@ -276,7 +275,7 @@
     function end_session() {
         window.onbeforeunload = null;
         // send_status() here if needed
-        ServerHelper.upload_data('complete',response_log);
+        // ServerHelper.upload_data('complete',response_log);
     }
 
     function terminate(msg){
@@ -359,7 +358,7 @@
         // preload things, cfg file, etc.
         // get configuration file with list of stimuli, words, pictures
 
-{% comment %}        if (preload_state == 'init') {
+        if (preload_state == 'init') {
             if (cfg.hasOwnProperty('group')) {
                 // get session token from group
                 if (!ServerHelper.group_session_requested)
@@ -372,9 +371,8 @@
             } else {
                 terminate("Unable to load configuration");
             }
-        } else {% endcomment %}
-        if(preload_state == 'start_wait') {
-            if(ServerHelper.start_received) {
+        } else if(preload_state == 'group_wait') {
+            if(ServerHelper.group_session_received) {
                 if(ServerHelper.sessionToken.slice(0,5)=='Error') {
                     console.log(ServerHelper.sessionToken);
                     terminate("Unable to establish session");
@@ -383,19 +381,15 @@
                 cfg['sessionToken']=ServerHelper.sessionToken;
                 //console.log("Got session: "+cfg['sessionToken']);
                 sessionToken=cfg['sessionToken'];
-                //ServerHelper.request_config(cfg['sessionToken']);
-
-                // parse config file, workerid, etc...
-
-                //preload_state='session_wait';
+                ServerHelper.request_config(cfg['sessionToken']);
+                preload_state='session_wait';
+            }
+        } else if (preload_state == 'session_wait') {
+            if (ServerHelper.config_received == true) {
+                parse_config(ServerHelper.config_file);
+                config_parsed=true;
                 preload_state = 'log_config';
             }
- //       } else if (preload_state == 'session_wait') {
- //           if (ServerHelper.config_received == true) {
- //               parse_config(ServerHelper.config_file);
- //               config_parsed=true;
- //               preload_state = 'log_config';
- //           }
         } else if(preload_state=='log_config') {
             if (config_parsed) { // don't continue until ready
                 // put config into the response log to start
@@ -424,16 +418,11 @@
 
     function main() {
         var url=document.URL;
-        var params=ServerHelper.empirical_start(url); //  parse_url(url) // function in server.js
+        var params=parse_url(url); // function in server.js
 
-        if(ServerHelper.fatal_error) {
-            alert(ServerHelper.error)
-        } else {
-            for (var p in params) cfg[p]=params[p];
-            window.onbeforeunload=warn_termination;
-            preload_state='start_wait';
-            requestId = window.requestAnimationFrame(preload_draw);
-        }
+        for (var p in params) cfg[p]=params[p];
+        window.onbeforeunload=warn_termination;
+        requestId = window.requestAnimationFrame(preload_draw);
     }
 
     window.addEventListener("keydown",keypress,false);
