@@ -8,20 +8,6 @@ var DEVELOPMENT_SERVER=true;
 
 var server_debug = true;
 
-function parse_url(url){
-    var params={};
-    var q=url.split('?');
-    if (q.length<2) return(params);
-    q = q[1].split('&');
-    for(var i=0;i < q.length;i++) {
-        var t=q[i].split('=');
-        if(t.length==1) params[t[0]]='None';
-        else if(t.length==2) params[t[0]]=t[1];
-        else params[t[0]]= t.slice(1);
-    }
-    return(params);
-}
-
 var ServerHelper = {
     server_url: (DEVELOPMENT_SERVER) ? "http://127.0.0.1:8000/exp/" : "https://www.reberlab.org/exp/",
     image_url: (DEVELOPMENT_SERVER) ? "http://127.0.0.1:8000/images/" : "https://www.reberlab.org/images/",
@@ -30,17 +16,18 @@ var ServerHelper = {
     config_file: "",
     consent_form: "",
     workerId: "",
+    fatal_error: false,
     error: "",
     response_log: "",
     status: "",
-    group_session_num: "",
-    config_error: false,
-    group_session_requested: false,
-    group_session_received: false,
-    config_requested: false,
-    config_received: false,
-    consent_requested: false,
-    consent_received: false,
+    //group_session_num: "",
+    //config_error: false,
+    //group_session_requested: false,
+    //group_session_received: false,
+    //config_requested: false,
+    //config_received: false,
+    //consent_requested: false,
+    //consent_received: false,
     upload_requested: false,
     start_requested: false,
     start_received: false,
@@ -50,6 +37,28 @@ var ServerHelper = {
     upload_connection_log: '',
     groupToken: '', // these just used for logging here
 
+    empirical_start: function(url) {
+        var params={};
+        var q=url.split('?');
+        if (q.length<2) return(params);
+        q = q[1].split('&');
+        for(var i=0;i < q.length;i++) {
+            var t=q[i].split('=');
+            if(t.length==1) params[t[0]]='None';
+            else if(t.length==2) params[t[0]]=t[1];
+            else params[t[0]]= t.slice(1);
+        }
+        if (params.hasOwnProperty('group')) {
+            this.groupToken = params['group'];
+        } else {
+            this.error="No group token in URL";
+            this.fatal_error=true;
+        }
+        if (params.hasOwnProperty('workerId')) {
+            this.workerId = params['workerId'];
+        }
+        return(params);
+    },
 
     start_request: function(groupToken, workerId) {
         if (this.start_requested) {
@@ -90,12 +99,13 @@ var ServerHelper = {
                 console.log("config "+ServerHelper.config_file.slice(0,200));
                 // what happens if anything isn't parse properly?
             } else {
-                ServerHelper.config_error=true;
+                ServerHelper.fatal_error=true;
                 ServerHelper.error = ServerHelper.xmlhttp.statusText;
             }
         }
     },
 
+/*
     group_session_request: function (groupToken, workerId) {
         if (this.group_session_requested) {
             if (server_debug) console.log("Multiple calls to group config request");
@@ -187,6 +197,7 @@ var ServerHelper = {
             }
         }
     },
+*/
 
     request_status: function (sessionToken) {
         if (!this.sessionToken) this.sessionToken = sessionToken; // only use passed parameter if not already set
@@ -290,7 +301,7 @@ var ServerHelper = {
 
     // Create form to submit the final data to mturk
     upload_to_mturk: function(mturk_url, summary) {
-        var url = decodeURIComponent(mturk_url) + '/mturk/externalSubmit';
+        var url = decodeURIComponent(mturk_url) + '/mturk/externalSubmit'; // this is supposed to be constructed from URL params...
         var form_holder = document.getElementById("formholder");
         if(server_debug) console.log("setting form");
         var mturk_response=summary+';sesssionToken='+this.sessionToken+';groupToken='+this.groupToken+';connection_log='+ServerHelper.upload_connection_log;

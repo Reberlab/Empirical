@@ -191,6 +191,7 @@ function trivia_keypress(e) {
                     return;
                 } else {
                     trivia_state='question'; // return to question state, pre-confirm
+                    current_highlighted=0;
                     return;
                 }
             }
@@ -309,10 +310,12 @@ function draw_question(show_answer) {
             // positive feedback at bottom of page
             ctx.fillStyle = cfg['correct_bkg'];
             ctx.fillText("Correct!", (layout.cue_area/2), layout.height-100);
+            ctx.fillText("Press Enter to continue", (layout.cue_area/2), layout.height-70);
         } else {
             // negative feedback at bottom of page
             ctx.fillStyle = cfg['incorrect_bkg'];
             ctx.fillText("Not quite.", (layout.cue_area/2), layout.height-100);
+            ctx.fillText("Press Enter to continue", (layout.cue_area/2), layout.height-70);
         }
     }
     if(verbose) verbose=false;
