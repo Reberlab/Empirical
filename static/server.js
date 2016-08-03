@@ -56,11 +56,16 @@ var ServerHelper = {
             if (server_debug) console.log("Multiple calls to start_request");
             return;
         }
+        console.log(groupToken, workerId);
         this.groupToken = groupToken;
+        this.workerId = workerId;
         if (workerId=='') {
             var start_request_url = this.server_url + 'start/' + this.groupToken;
+            console.log('no workerId');
+            console.log(start_request_url);
         } else {
             start_request_url = this.server_url + 'start/' + this.groupToken + '/' + this.workerId;
+            console.log(start_request_url);
         }
         this.xmlhttp.addEventListener('load', this.start_receive);
         this.xmlhttp.open("GET", start_request_url, true);
@@ -74,6 +79,7 @@ var ServerHelper = {
             return;
         }
         if (ServerHelper.xmlhttp.readyState == 4) {
+            //console.log(['whyyyy']);
             ServerHelper.start_received = true;
             if (ServerHelper.xmlhttp.status == 200) {
                 var response = ServerHelper.xmlhttp.responseText;

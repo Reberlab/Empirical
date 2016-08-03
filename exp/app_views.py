@@ -59,7 +59,7 @@ def session_order(e, session_list): # e is the experiment, session_list is a lis
     for i in configs:
         if i.sessionToken in session_list:
             if i.lastStarted is None:
-                d = timezone.make_aware(timezone.datetime.min, timezone.get_default_timezone())
+                d = timezone.make_aware(datetime(2, 1, 1, tzinfo=None), timezone.get_default_timezone())
             else:
                 d = i.lastStarted
             order.append((d,i))

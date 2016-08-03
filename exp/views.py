@@ -8,6 +8,7 @@ from datetime import date, datetime
 import time
 import json
 from django.templatetags.static import static
+#from django.templatetags.static import static
 
 from app_views import *
 from data_views import *
@@ -86,7 +87,7 @@ def one_experiment(request, expNumber=''):
     token_order=[]
     for i in s:
         if i.lastStarted is None:
-            d=timezone.make_aware(timezone.datetime.min, timezone.get_default_timezone())
+            d=timezone.make_aware(datetime(2, 1, 1, tzinfo = None), timezone.get_default_timezone())
         else:
             d=i.lastStarted
         if session_order.has_key(i.sessionToken):
@@ -219,7 +220,6 @@ def add_token_creation_event(sessionToken,studyName):
     return
 
 # from mturk_hits import *
-# from django.templatetags.static import static
 
 # link token form to do
 # -- get rid of the mturk form elements (eventually remove from table too)

@@ -139,7 +139,7 @@
                 }
             }
             if (state=='study_feedback') {
-                //console.log("Feedback for trial " + (trial_number - 1));
+                console.log("Feedback for trial " + (trial_number - 1));
                 if (cfg['stimCondition'] == 'words') show_word(cfg['wordList'][trial_number - 1]);
                 else show_picture(cfg['imageList'][trial_number-1]);
                 ctx.font = "24px Arial";
