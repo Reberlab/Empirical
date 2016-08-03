@@ -19,7 +19,8 @@
     </table>
     <ul>
     <li><a href="{% url 'study_data' study.pk %}">View data</a></li>
-    <li><a href="{% url 'new_experiment' study.pk %}">Add Experiment</a></li>
+    <li><a href="{% url 'new_experiment' study.pk %}">Create Experiment manually</a></li>
+    <li><a href="{% url 'upload_sessions' study.pk %}">Add Experiment from Zip file</a></li>
     <li><a href="{% url 'edit_study' study.id%}">Edit this Study</a></li>
     </ul>
     <br/>

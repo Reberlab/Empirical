@@ -198,8 +198,6 @@ def upload_zip(request, studyNumber='', expNumber=''):
                 os.mkdir(output_dir)
                 unpack_log.append("Created output directory for images %s" % output_dir)
 
-            unpack_log.append("Exp is set to %s" % zip_form.cleaned_data['exp'])
-
             if zip_form.cleaned_data['exp']==None:
                 # create experiment object
                 e = Experiment.objects.create(name=zip_form.cleaned_data['exp_name'],
@@ -218,8 +216,12 @@ def upload_zip(request, studyNumber='', expNumber=''):
 
             session_list=''
             for f in file_list:
+                fn = os.path.basename(f.filename)
+                if not fn or fn[0] == '_' or fn[0] == '.':
+                    continue # skips directories and files that start with characters to ignore
+
                 if is_image_file(f.filename):
-                    if not os.path.exists(os.path.join(output_dir, f.filename)):
+                    if not os.path.exists(os.path.join(output_dir, fn)):
                         zf.extract(f, output_dir)
                         unpack_log.append("Extracting image file %s to %s" % (f.filename, output_dir))
                 else:
@@ -228,7 +230,7 @@ def upload_zip(request, studyNumber='', expNumber=''):
                     raw_cfg = fp.read()
                     cfg = raw_cfg.encode('utf-8','ignore')  # to avoid getting db breaking characters stored by accident
                     fp.close()
-                    c = Session.objects.create_session(name=f.filename,
+                    c = Session.objects.create_session(name=fn, #f.filename,
                                                        exp=e,
                                                        configFile=cfg,
                                                        user=request.user.username)
