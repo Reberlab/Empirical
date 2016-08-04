@@ -38,11 +38,12 @@ urlpatterns = [
     #url(r'^group/(?P<groupToken>[0-9a-z]+)/(?P<workerId>[0-9a-zA-Z_]+)$', views.get_session, name='get_session'),
     #url(r'^start/(?P<sessionToken>[0-9a-z]+)$', views.start, name='start_exp'),
     #url(r'^start/(?P<sessionToken>[0-9a-z]+)/(?P<args>[0-9a-zA-Z]+)$', views.start, name='start_exp'),
-    url(r'^start/(?P<groupToken>[0-9a-z]+)/(?P<workerId>[0-9a-zA-Z]+)$', views.start_session, name='start_session'),
+    url(r'^start/(?P<groupToken>[0-9a-z]+)/(?P<workerId>[0-9a-zA-Z_]+)$', views.start_session, name='start_session'),
     url(r'^start/(?P<groupToken>[0-9a-z]+)$', views.start_session, name='start_session'),
-    url(r'^newstart/(?P<groupToken>[0-9a-z]+)/(?P<workerId>[0-9a-zA-Z]+)$', views.newstart_session, name='newstart_session'),
+    url(r'^newstart/(?P<groupToken>[0-9a-z]+)/(?P<workerId>[0-9a-zA-Z_]+)$', views.newstart_session, name='newstart_session'),
     #url(r'^consent/(?P<sessionToken>[0-9a-z]+)', views.get_consent, name='get_consent'),
     url(r'^report/(?P<sessionToken>[0-9a-z]+)', views.report, name='report_exp'),
     url(r'^status/(?P<sessionToken>[0-9a-z]+)$', views.return_status, name='show_status'),
+    url(r'^status/(?P<sessionToken>[0-9a-z]+)/(?P<workerId>[0-9a-zA-Z_]+)$', views.return_status, name='show_status'),
 ]
 

@@ -58,7 +58,7 @@ function preload_draw() {
             preload_state = 'request_status';
         }
     } else if(preload_state=='request_status') {
-        ServerHelper.request_status(ServerHelper.sessionToken);
+        ServerHelper.request_status();
         preload_state='wait_status';
     } else if(preload_state=='wait_status') {
         if (ServerHelper.status_received) {

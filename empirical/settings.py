@@ -92,7 +92,7 @@ USE_TZ = True
 
 LOGIN_URL='/login/'
 
-VERSION="Empirical 0.2"
+VERSION="Empirical 0.3 Aug 2016"
 
 
 # Static files (CSS, JavaScript, Images)

@@ -912,16 +912,16 @@
     function main(){
         // extract sessiontoken from url
         var url=document.URL;
-        var params=parse_url(url); // function in server.js
+        var params=ServerHelper.empirical_start(url); // function in server.js
 
-        if (params=={}) {
-            // Experiment can't run without a config file
-            terminate("No configuation information");
+        if (ServerHelper.fatal_error) {
+            terminate(ServerHelper.error);
             return;
         }
 
         for (var p in params) cfg[p]=params[p];
         document.getElementById("mainWin").focus();
+
         if ((params.hasOwnProperty('assignmentId') && params['assignmentId']=="ASSIGNMENT_ID_NOT_AVAILABLE") ||
                 (params.hasOwnProperty('demo'))) {
             console.log("Run demo...");

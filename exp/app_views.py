@@ -222,14 +222,28 @@ def newstart_session(request, groupToken, workerId=''):
 
 
 # return_status() reports back on the latest status report for that sessionToken, used for continuing/restarting
-def return_status(request, sessionToken):
+def return_status(request, sessionToken, workerId=''):
     try:
         reports = Report.objects.filter(sessionToken=sessionToken,eventType='status').order_by('-uploadDate') # returns last status
     except:
         return HttpResponse('None') # no status is available, no data for this session yet
     if not reports.exists():
         return HttpResponse('None') # no status reports
-    return HttpResponse(reports[0].dataLog)  # datalog length could be limited here
+
+    # check to make sure workerId matches, necessary if recycle is set
+    if workerId!='':
+        starts = Report.objects.filter(sessionToken=sessionToken,eventType='start').order_by('-uploadDate')
+        for s in starts:
+            if s.dataLog==workerId:
+                if s.uploadDate<reports[0].uploadDate: # workerid matches and status came after start event
+                    return HttpResponse(reports[0].dataLog[:256])
+                else:
+                    return HttpResponse('None') # this is the start event for this session, status was from prior
+        # technically this line shouldn't be reached since there should be a start event for workerid
+        # but just in case, we'll simply return None if there was no start event
+        return HttpResponse('None')
+
+    return HttpResponse(reports[0].dataLog[:256])  # datalog length is limited to returning 256 to avoid abuse
 
 
 # report() is thje data upload function

@@ -12,6 +12,7 @@ var ServerHelper = {
     server_url: (DEVELOPMENT_SERVER) ? "http://127.0.0.1:8000/exp/" : "https://www.reberlab.org/exp/",
     image_url: (DEVELOPMENT_SERVER) ? "http://127.0.0.1:8000/images/" : "https://www.reberlab.org/images/",
     xmlhttp: new XMLHttpRequest(),
+    groupToken: '',
     sessionToken: "",
     config_file: "",
     consent_form: "",
@@ -28,14 +29,13 @@ var ServerHelper = {
     //config_received: false,
     //consent_requested: false,
     //consent_received: false,
-    upload_requested: false,
     start_requested: false,
     start_received: false,
     data_logged: false,
+    upload_requested: false,
     upload_in_progress: false,
     upload_queue: [],
     upload_connection_log: '',
-    groupToken: '', // these just used for logging here
 
     empirical_start: function(url) {
         var params={};
@@ -54,21 +54,21 @@ var ServerHelper = {
             this.error="No group token in URL";
             this.fatal_error=true;
         }
-        if (params.hasOwnProperty('workerId')) {
-            this.workerId = params['workerId'];
-        }
+        if (params.hasOwnProperty('workerId')) this.workerId = params['workerId'];
+        else this.workerId='';
+        console.log("Start: "+this.groupToken+' '+this.workerId);
         return(params);
     },
 
-    start_request: function(groupToken, workerId) {
+    start_request: function() {
         if (this.start_requested) {
             if (server_debug) console.log("Multiple calls to start_request");
             return;
         }
-        console.log(groupToken, workerId);
-        this.groupToken = groupToken;
-        this.workerId = workerId;
-        if (workerId=='') {
+        console.log(this.groupToken, this.workerId);
+        //this.groupToken = groupToken;
+        //this.workerId = workerId;
+        if (this.workerId=='') {
             var start_request_url = this.server_url + 'start/' + this.groupToken;
             console.log('no workerId');
             console.log(start_request_url);
@@ -205,9 +205,8 @@ var ServerHelper = {
     },
 */
 
-    request_status: function (sessionToken) {
-        if (!this.sessionToken) this.sessionToken = sessionToken; // only use passed parameter if not already set
-        var url = this.server_url + 'status/' + this.sessionToken;
+    request_status: function () {
+        var url = this.server_url + 'status/' + this.sessionToken + '/' + this.workerId;
         this.xmlhttp = new XMLHttpRequest();
         this.xmlhttp.addEventListener('load', this.get_status);
         this.xmlhttp.open("GET", url, true);

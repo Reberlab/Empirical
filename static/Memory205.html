@@ -35,7 +35,6 @@
     var preload_state = 'init';
     var demo_mode = false;
 
-    var sessionToken = '';
     var cfg = {};
     var response_log = [];
     var trial_number = 0;
@@ -350,45 +349,40 @@
     }
 
     // It would be nice if we could store this in a cookie for the browser to allow anonymous restarts...
-    function unique_worker_id() {
-        return 'No_worker_id_'+Math.random().toString(36).slice(-8);
-    }
+    //function unique_worker_id() {
+    //    return 'No_worker_id_'+Math.random().toString(36).slice(-8);
+    //}
 
     // Preload & initialization
     function preload_draw() {
         // preload things, cfg file, etc.
         // get configuration file with list of stimuli, words, pictures
 
-{% comment %}        if (preload_state == 'init') {
+         if (preload_state == 'init') {
             if (cfg.hasOwnProperty('group')) {
                 // get session token from group
-                if (!ServerHelper.group_session_requested)
-                    ServerHelper.group_session_request(cfg['group'], unique_worker_id());
-                preload_state = 'group_wait';
-            } else if (cfg.hasOwnProperty('session')) {
-                sessionToken = cfg['session'];
-                ServerHelper.request_config(sessionToken);
-                preload_state = 'session_wait';
+                if (!ServerHelper.start_requested)
+                    ServerHelper.start_request();
+                preload_state = 'start_wait';
             } else {
                 terminate("Unable to load configuration");
             }
-        } else {% endcomment %}
-        if(preload_state == 'start_wait') {
+        } else if(preload_state == 'start_wait') {
             if(ServerHelper.start_received) {
-                if(ServerHelper.sessionToken.slice(0,5)=='Error') {
-                    console.log(ServerHelper.sessionToken);
-                    terminate("Unable to establish session");
+                if(ServerHelper.fatal_error) {
+                    console.log(ServerHelper.error);
+                    terminate(ServerHelper.error);
                     return;
                 }
-                cfg['sessionToken']=ServerHelper.sessionToken;
+                //cfg['sessionToken']=ServerHelper.sessionToken;
                 //console.log("Got session: "+cfg['sessionToken']);
-                sessionToken=cfg['sessionToken'];
+                //sessionToken=cfg['sessionToken'];
                 //ServerHelper.request_config(cfg['sessionToken']);
-
                 // parse config file, workerid, etc...
-
                 //preload_state='session_wait';
                 preload_state = 'log_config';
+                parse_config(ServerHelper.config_file);
+                config_parsed=true;
             }
  //       } else if (preload_state == 'session_wait') {
  //           if (ServerHelper.config_received == true) {
@@ -431,7 +425,7 @@
         } else {
             for (var p in params) cfg[p]=params[p];
             window.onbeforeunload=warn_termination;
-            preload_state='start_wait';
+            preload_state='init';
             requestId = window.requestAnimationFrame(preload_draw);
         }
     }
