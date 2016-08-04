@@ -11,7 +11,7 @@
         <p>{{ reports|length }} report events found</p>
         <ul>
         {% for d in reports %}
-            <li><a href="{% url 'display_data' session.sessionToken d.pk %}">{{ d.eventType }} at {{ d.uploadDate }}<a></a></li>
+            <li><a href="{% url 'session_data' session.sessionToken d.pk %}">{{ d.eventType }} at {{ d.uploadDate }}<a></a></li>
         {% endfor %}
         </ul>
         <hr>

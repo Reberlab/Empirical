@@ -54,7 +54,7 @@ def download_session_data(request, sessionToken, pkid=''):
             report_contents=report_contents+header+i.dataLog+"\n\n"
 
     if report_contents!='':
-        output_filename="%s_data_%s_%s.txt" % (s.expName,date.today().strftime("%d%b%Y"),pkid)
+        output_filename="%s_data_%s_%s.txt" % (s.exp.name,date.today().strftime("%d%b%Y"),pkid)
         response=HttpResponse(report_contents,content_type='text/plain')
         response['Content-Disposition'] = "attachment; filename=%s" % output_filename
         return response

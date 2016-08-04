@@ -24,7 +24,7 @@ function preload_draw() {
 
     } else if(preload_state=='start_wait'){
         if(ServerHelper.start_received) {
-            if(ServerHelper.config_error) {
+            if(ServerHelper.fatal_error) {
                 if (debug_preload) console.log(ServerHelper.error);
                 preload_state='done_preload';
                 return;
@@ -262,6 +262,7 @@ function parse_config() {
 
 function cfg_adjust(){ // modify parameters from PsychoPy structure to browser coordinates
     // Fill in z parameters if missing
+    if(server_debug) console.log("In cfg adjust");
     if(cfg.hasOwnProperty('start_z')==false){
         cfg['start_z']=[];
         cfg['delta_z']=[];

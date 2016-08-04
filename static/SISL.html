@@ -896,7 +896,7 @@
                     return;
                 }
                 requestId = window.requestAnimationFrame(draw);
-            } else if(!is_empty(consent_form)) show_consent();
+            } else if(!is_empty(ServerHelper.consent_form)) show_consent();
             else requestId = window.requestAnimationFrame(draw);
         } else terminate("Initialization Error, please contact Experimenter");
     }
