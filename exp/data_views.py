@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.utils.text import slugify
 
 # to allow for reading non-ascii strings from the db without crashing
 from django.db import connection
@@ -129,7 +130,7 @@ def download_exp_data(request, expId, reportType=''):
     output_filename=os.path.join(settings.MEDIA_ROOT, settings.ZIP_TMP, fn)
     while os.path.exists(output_filename) and count<100:
         count=count+1
-        fn="%s_data_%s_%d.zip" % (e.name,date.today().strftime("%d%b%Y"),count)
+        fn="%s_data_%s_%d.zip" % (slugify(e.name),date.today().strftime("%d%b%Y"),count)
         output_filename=os.path.join(settings.MEDIA_ROOT, settings.ZIP_TMP, fn)
     if count==100:
         return HttpResponse('Error creating output file')

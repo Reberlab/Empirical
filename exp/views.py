@@ -122,7 +122,7 @@ def edit_experiment(request, expNumber='', studyNumber=''):
         if exp_form.is_valid():
             e=exp_form.save(commit=False)
             e.user=request.user.username
-            e.create_token()
+            #e.create_token()
             e.save()
             #s = Session.objects.filter(exp=e.pk)
             #study = e.study
