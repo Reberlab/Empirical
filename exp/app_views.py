@@ -60,9 +60,11 @@ def session_order(e, session_list): # e is the experiment, session_list is a lis
         if i.sessionToken in session_list:
             if i.lastStarted is None:
                 d = timezone.make_aware(datetime(2, 1, 1, tzinfo=None), timezone.get_default_timezone())
+                #d = timezone.make_aware(datetime.min, timezone.get_default_timezone())
             else:
                 d = i.lastStarted
             order.append((d,i))
+    order.sort()
     (date_list, session_list)=zip(*order)
     return session_list
 
@@ -122,13 +124,18 @@ def start_session(request, groupToken, workerId=''):
         # if no recycle, only return if lastUpdated is None
         if e.recycle==False:
             if config_list[0].lastStarted==None:
-                c=config_list[0]
+                c = config_list[0]
                 session=c.sessionToken
             else:
                 return HttpResponse(empirical_error('No tokens are available for %s' % e.name))
         else:
             c = config_list[0]
             session = c.sessionToken
+        # for new workers, create started datalog event
+        r = Report(sessionToken=session,sessionKey=c,eventType='start',dataLog=workerId) # workerId stored in this event to catch re-use later
+        r.save()
+        # and update study particpant list
+        s.addParticipant(workerId,session)
 
     if c==None:
         try:
@@ -141,18 +148,15 @@ def start_session(request, groupToken, workerId=''):
     c.lastStarted=datetime.now()
     c.save()
 
-    # update study particpant list
-    s.addParticipant(workerId,session)
-
-    # create started datalog event
-    r = Report(sessionToken=session,sessionKey=c,eventType='start',dataLog=workerId) # workerId stored in this event to catch re-use later
-    r.save()
-
     start_xml={}
     start_xml['Empirical:workerid']=workerId
     start_xml['Empirical:consent']="<![CDATA[%s]]>" % consent
     start_xml['Empirical:config']="<![CDATA[%s]]>" % config
     start_xml['Empirical:session']=session
+    debug_string=''
+    for i in config_list:
+        debug_string=debug_string+('%s %s;\n' % (i.sessionToken, i.lastStarted))
+    start_xml['Empirical:debug']=debug_string
 
     return HttpResponse(xml_string(start_xml))
 
