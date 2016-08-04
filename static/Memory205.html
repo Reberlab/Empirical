@@ -362,8 +362,8 @@
 {% comment %}        if (preload_state == 'init') {
             if (cfg.hasOwnProperty('group')) {
                 // get session token from group
-                if (!ServerHelper.group_session_requested)
-                    ServerHelper.group_session_request(cfg['group'], unique_worker_id());
+                if (!ServerHelper.start_received)
+                    ServerHelper.start_request(cfg['group']);
                 preload_state = 'group_wait';
             } else if (cfg.hasOwnProperty('session')) {
                 sessionToken = cfg['session'];
