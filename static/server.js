@@ -9,18 +9,20 @@ var DEVELOPMENT_SERVER=true;
 var server_debug = true;
 
 var ServerHelper = {
-    server_url: (DEVELOPMENT_SERVER) ? "http://127.0.0.1:8000/exp/" : "https://www.reberlab.org/exp/",
-    image_url: (DEVELOPMENT_SERVER) ? "http://127.0.0.1:8000/images/" : "https://www.reberlab.org/images/",
+    server_url: '', // (DEVELOPMENT_SERVER) ? "http://127.0.0.1:8000/exp/" : "https://www.reberlab.org/exp/",
+    image_url: '', //(DEVELOPMENT_SERVER) ? "http://127.0.0.1:8000/images/" : "https://www.reberlab.org/images/",
     xmlhttp: new XMLHttpRequest(),
     groupToken: '',
     sessionToken: "",
     config_file: "",
     consent_form: "",
     workerId: "",
+    prompt_string: "Please enter your User ID:",
     fatal_error: false,
     error: "",
     response_log: "",
     status: "",
+    demo_mode: false,
     //group_session_num: "",
     //config_error: false,
     //group_session_requested: false,
@@ -40,6 +42,12 @@ var ServerHelper = {
     empirical_start: function(url) {
         var params={};
         var q=url.split('?');
+        u = new URL(url);
+        if (u.port=='' || u.port==80) host=u.hostname;
+        else host=u.hostname+':'+u.port
+        this.server_url = u.protocol + '//' + host +'/exp/';
+        this.image_url = u.protocol + '//' + host + '/images/';
+        console.log(this.server_url);
         if (q.length<2) return(params);
         q = q[1].split('&');
         for(var i=0;i < q.length;i++) {
@@ -56,6 +64,17 @@ var ServerHelper = {
         }
         if (params.hasOwnProperty('workerId')) this.workerId = params['workerId'];
         else this.workerId='';
+        if (this.workerId=='demo' || params.hasOwnProperty('demo')) this.demo_mode=true;
+        else if (this.workerId=='prompt' || params.hasOwnProperty('prompt')) {  // can't prompt if demo mode
+            console.log("Getting workerID");
+            // prompt for name/sona id
+            workerId = prompt(ServerHelper.prompt_string);
+            name_ok = /^[a-z0-9_]+$/i.test(workerId);
+            while (!name_ok) {
+                workerId = prompt("User id can only have numbers, letters or underscore:");
+                name_ok = /^[a-z0-9_]+$/i.test(workerId);
+            }
+        }
         console.log("Start: "+this.groupToken+' '+this.workerId);
         return(params);
     },
@@ -96,10 +115,11 @@ var ServerHelper = {
                 xmlDoc = parser.parseFromString(response,"text/xml");
                 console.log("text: "+response.slice(0,200));
                 // the response is an XML object with the session token, workerid,  config file and consent form
-                ServerHelper.sessionToken = xmlDoc.getElementsByTagName("Empirical:session")[0].childNodes[0].nodeValue;
-                ServerHelper.workerId = xmlDoc.getElementsByTagName("Empirical:workerid")[0].childNodes[0].nodeValue;
-                ServerHelper.config_file = xmlDoc.getElementsByTagName("Empirical:config")[0].childNodes[0].nodeValue;
-                ServerHelper.consent_form = xmlDoc.getElementsByTagName("Empirical:consent")[0].childNodes[0].nodeValue;
+                ServerHelper.sessionToken = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","session")[0].childNodes[0].nodeValue;
+                console.log("session "+ ServerHelper.sessionToken);
+                ServerHelper.workerId = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","workerid")[0].childNodes[0].nodeValue;
+                ServerHelper.config_file = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","config")[0].childNodes[0].nodeValue;
+                ServerHelper.consent_form = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","consent")[0].childNodes[0].nodeValue;
                 console.log("session "+ ServerHelper.sessionToken);
                 console.log("worker "+ServerHelper.workerId);
                 console.log("config "+ServerHelper.config_file.slice(0,200));

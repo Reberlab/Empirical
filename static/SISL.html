@@ -910,43 +910,30 @@
     }
 
     function main(){
-        // extract sessiontoken from url
+        document.getElementById("mainWin").focus();
         var url=document.URL;
-        var params=ServerHelper.empirical_start(url); // function in server.js
 
+        // Prompt string is set assuming this means it was SONA scheduled
+        ServerHelper.prompt_string="Please enter your SONA participant ID number"; //,"SONA_" + d
+        var params=ServerHelper.empirical_start(url); // function in server.js to set up everything
         if (ServerHelper.fatal_error) {
             terminate(ServerHelper.error);
             return;
         }
-
+        // add config parameters to cfg
         for (var p in params) cfg[p]=params[p];
-        document.getElementById("mainWin").focus();
 
-        if ((params.hasOwnProperty('assignmentId') && params['assignmentId']=="ASSIGNMENT_ID_NOT_AVAILABLE") ||
-                (params.hasOwnProperty('demo'))) {
-            console.log("Run demo...");
-            // run demo -- this will typically be launched from mTurk pre-HIT acceptance
-            demo_mode = true;
+        if (ServerHelper.demo_mode) {
+            demo_mode=true;
             if (!cfg.hasOwnProperty('demo')) cfg['demo'] = 'true';
-        } else {
-            // if not demo, set up the warn before leaving hook
-            window.onbeforeunload=warn_termination;
-            // enter id if needed
-            if(cfg.hasOwnProperty('prompt') || (cfg.hasOwnProperty('workerId')) && cfg['workerId']=='prompt') {
-                console.log("Getting workerID");
-                // prompt for name/sona id
-                workerId = prompt("Please enter your SONA participant ID number","SONA_" + d);
-                name_ok = /^[a-z0-9_]+$/i.test(workerId);
-                while (!name_ok) {
-                    workerId = prompt("User id can only have numbers, letters, underscore:","SONA_" + d);
-                    name_ok = /^[a-z0-9_]+$/i.test(workerId);
-                }
-            }
         }
+        else {
+            window.onbeforeunload=warn_termination;
+        }
+
         if (initialized==false) { // if this gets run after initialization, something is off
             initialized=true;
             preload_experiment();
-            //console.log("Loaded");
             //start();
         }
     }

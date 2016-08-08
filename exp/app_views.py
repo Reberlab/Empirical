@@ -153,10 +153,10 @@ def start_session(request, groupToken, workerId=''):
     start_xml['Empirical:consent']="<![CDATA[%s]]>" % consent
     start_xml['Empirical:config']="<![CDATA[%s]]>" % config
     start_xml['Empirical:session']=session
-    debug_string=''
-    for i in config_list:
-        debug_string=debug_string+('%s %s;\n' % (i.sessionToken, i.lastStarted))
-    start_xml['Empirical:debug']=debug_string
+    #debug_string=''
+    #for i in config_list:
+    #    debug_string=debug_string+('%s %s;\n' % (i.sessionToken, i.lastStarted))
+    #start_xml['Empirical:debug']=debug_string
 
     return HttpResponse(xml_string(start_xml))
 
