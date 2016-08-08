@@ -2,9 +2,12 @@
  * Created by PJR on 8/5/2015.
  */
 
-var DEVELOPMENT_SERVER=true;
+// var DEVELOPMENT_SERVER=true;
 //var LIVE_MTURK='https://www.mturk.com/mturk/externalSubmit';
 //var SANDBOX_MTURK='https://workersandbox.mturk.com/mturk/externalSubmit';
+
+// https://www.reberlab.org/static/SISL.html?group=de945007aec0184d&assignmentId=123RVWYBAZW00EXAMPLE456RVWYBAZW00EXAMPLE&hitId=123RVWYBAZW00EXAMPLE&turkSubmitTo=https://www.mturk.com/&workerId=AZ3456EXAMPLE
+
 
 var server_debug = true;
 
@@ -24,7 +27,8 @@ var ServerHelper = {
     status: "",
     demo_mode: false,
     mturk: false,
-    mturk_submit: '/mturk/externalSubmit',
+    mturk_submit: '',
+    mturk_info: '',
     //group_session_num: "",
     //config_error: false,
     //group_session_requested: false,
@@ -79,18 +83,16 @@ var ServerHelper = {
         }
         if (params.hasOwnProperty('assignmentId')) { // this is an mturk session
             this.mturk=true;
-            if (params['assignmentId']=='None') {
+            if (params['assignmentId']=='ASSIGNMENT_ID_NOT_AVAILABLE') {
                 this.demo_mode=true;
             } else {
-                // set submit-to hook, upload assignment info as a private record
-                var mturk_info="assignmentId=%s\n" % params['assignmentId'];
-                if (params.hasOwnProperty('hitId')) mturk_info+="hitId=%s\n" % params['hitId'];
-                mturk_info+="workerId=%s\n" % this.workerId;
-                if (params.hasOwnProperty('turkSubmitTo')) {
-                    mturk_info+="turkSubmitTo=%s\n" % params['turkSubmitTo'];
-                    this.murk_submit=params['turkSubmitTo'];
-                }
-                this.upload_data('private',mturk_info);
+                var mturk_info="assignmentId=" + params['assignmentId'] + "\n";
+                if (params.hasOwnProperty('hitId')) mturk_info+="hitId=" + params['hitId'] + "\n";
+                mturk_info+="workerId=" + this.workerId + "\n";
+                if (params.hasOwnProperty('turkSubmitTo')) mturk_info+="turkSubmitTo=" + params['turkSubmitTo'] + "\n";
+                this.mturk_submit=params['turkSubmitTo'];
+                this.mturk_info=mturk_info;
+                console.log(mturk_info);
             }
         }
         console.log("Start: "+this.groupToken+' '+this.workerId);
@@ -102,7 +104,7 @@ var ServerHelper = {
             if (server_debug) console.log("Multiple calls to start_request");
             return;
         }
-        console.log(this.groupToken, this.workerId);
+        //console.log(this.groupToken, this.workerId);
         //this.groupToken = groupToken;
         //this.workerId = workerId;
         if (this.workerId=='') {
@@ -345,6 +347,10 @@ var ServerHelper = {
     // Create form to submit the final data to mturk
     upload_to_mturk: function(summary) {
         var url = decodeURIComponent(ServerHelper.mturk_submit) + '/mturk/externalSubmit'; // this is supposed to be constructed from URL params...
+
+        // this was assembled initially but not uploaded until the end
+        this.upload_data('private',this.mturk_info);
+
         var form_holder = document.getElementById("formholder");
         if(server_debug) console.log("setting form");
         var mturk_response=summary+';sesssionToken='+this.sessionToken+';groupToken='+this.groupToken+';connection_log='+ServerHelper.upload_connection_log;

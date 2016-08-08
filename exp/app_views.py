@@ -95,7 +95,11 @@ def start_session(request, groupToken, workerId=''):
         # check for existing workerId
         prior=s.participants.split()
         for i in prior:
-            (worker,token)=i.split(':')
+            if ':' in i:
+                (worker,token)=i.split(':')
+            else:
+                worker=i
+                token=''
             if worker==workerId:
                 has_prior=True
                 prior_session=token

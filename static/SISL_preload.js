@@ -11,16 +11,16 @@ function preload_draw() {
     if (preload_state == 'pre_start') {
         if (debug_preload) console.log("In pre_start");
 
-        if (cfg.hasOwnProperty('demo')) {
-            if (debug_preload) console.log("Demo mode: group token");
-            workerId = 'demo';
-        } 
-        else if (cfg.hasOwnProperty('workerId')) workerId = cfg['workerId'];
-        else workerId = '';
+        //if (cfg.hasOwnProperty('demo')) {
+        //    if (debug_preload) console.log("Demo mode: group token");
+        //    workerId = 'demo';
+        //}
+        //else if (cfg.hasOwnProperty('workerId')) workerId = cfg['workerId'];
+        //else workerId = '';
 
-        if (debug_preload) console.log("Group " + cfg['group'] + ", workerid=[" + workerId + "]");
+        if (debug_preload) console.log("Group " + cfg['group'] + ", workerid=[" + ServerHelper.workerId + "]");
         preload_state = 'start_wait';
-        ServerHelper.start_request(cfg['group'], workerId);
+        ServerHelper.start_request();
 
     } else if(preload_state=='start_wait'){
         if(ServerHelper.start_received) {
@@ -33,11 +33,13 @@ function preload_draw() {
             // process configuration information into variables
             parse_config();
             cfg_adjust();
+            consent_object = JSON.parse(ServerHelper.consent_form);
+            consent_form = consent_object['consent_form'];
             preload_state='load_images';
         }
     } else if(preload_state=='load_images'){
         preload_images();
-        if(demo_mode || cfg['demo_mode']=='true') {
+        if(ServerHelper.demo_mode || cfg['demo_mode']=='true') {
             // don't continue with preload -- no status or consent needed
             if (debug_preload) console.log("Demo mode, done with preload");
             start();

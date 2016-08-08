@@ -820,7 +820,7 @@
     function show_consent() {
         var form_holder = document.getElementById("formholder");
         consent_string="<h2>You are being asked to participate in a research study.  Please read and provide consent to participate before beginning.</h2><table class=\"consent\">";
-        for(section in consent_form) {
+        for(section in ServerHelper.consent_form) {
             consent_string+="<tr><td>"+section+"</td><td><b>"+consent_form[section]+"</b></td></tr>"
         }
         consent_string+="</table><div id=\"acceptbutton\">Do you consent to participate in the experiment?<br></div>";
