@@ -23,6 +23,8 @@ var ServerHelper = {
     response_log: "",
     status: "",
     demo_mode: false,
+    mturk: false,
+    mturk_submit: '/mturk/externalSubmit',
     //group_session_num: "",
     //config_error: false,
     //group_session_requested: false,
@@ -73,6 +75,22 @@ var ServerHelper = {
             while (!name_ok) {
                 workerId = prompt("User id can only have numbers, letters or underscore:");
                 name_ok = /^[a-z0-9_]+$/i.test(workerId);
+            }
+        }
+        if (params.hasOwnProperty('assignmentId')) { // this is an mturk session
+            this.mturk=true;
+            if (params['assignmentId']=='None') {
+                this.demo_mode=true;
+            } else {
+                // set submit-to hook, upload assignment info as a private record
+                var mturk_info="assignmentId=%s\n" % params['assignmentId'];
+                if (params.hasOwnProperty('hitId')) mturk_info+="hitId=%s\n" % params['hitId'];
+                mturk_info+="workerId=%s\n" % this.workerId;
+                if (params.hasOwnProperty('turkSubmitTo')) {
+                    mturk_info+="turkSubmitTo=%s\n" % params['turkSubmitTo'];
+                    this.murk_submit=params['turkSubmitTo'];
+                }
+                this.upload_data('private',mturk_info);
             }
         }
         console.log("Start: "+this.groupToken+' '+this.workerId);
@@ -325,12 +343,11 @@ var ServerHelper = {
     },
 
     // Create form to submit the final data to mturk
-    upload_to_mturk: function(mturk_url, summary) {
-        var url = decodeURIComponent(mturk_url) + '/mturk/externalSubmit'; // this is supposed to be constructed from URL params...
+    upload_to_mturk: function(summary) {
+        var url = decodeURIComponent(ServerHelper.mturk_submit) + '/mturk/externalSubmit'; // this is supposed to be constructed from URL params...
         var form_holder = document.getElementById("formholder");
         if(server_debug) console.log("setting form");
         var mturk_response=summary+';sesssionToken='+this.sessionToken+';groupToken='+this.groupToken+';connection_log='+ServerHelper.upload_connection_log;
-
         var formString = "<form action=\"" + url + "\" method=\"post\"><input type=\"hidden\" name=\"assignmentId\" value=\"" + cfg['assignmentId'] +
             "\">Press Submit to finish this experiment <input type=\"hidden\" name=\"dataLog\" value=\"" + mturk_response + "\"> <input type=\"submit\" value=\"Submit\"></form>";
         if(server_debug) console.log(formString);

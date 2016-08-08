@@ -302,7 +302,14 @@ def report(request, sessionToken, workerid=''):
             # here should check how long ago the token was given out or started and disallow data too long after start
             security_ok=security_check(sessionToken,report_form.cleaned_data['eventType'])
             if security_ok:
-                if r.eventType=='status': # no xml wrapping on status events
+                if r.eventType=='private': # wrap content in private tags
+                    report_xml={}
+                    ip_addr=get_client_ip(request)
+                    wrapped_report = xml_string(report_xml)
+                    report_xml['Empirical:privatedata'] = "IP address: %s\n%s" % (ip_addr,r.dataLog)
+                    r.dataLog = wrapped_report
+                    r.save()
+                elif r.eventType=='status': # no xml wrapping on status events
                     r.save()
                 else:
                     report_xml={}
@@ -327,7 +334,6 @@ def report(request, sessionToken, workerid=''):
 
     upload_form=ReportForm()
     return render(request, 'test_report.html',{'form':upload_form})
-
 
 ########################
 #

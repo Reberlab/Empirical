@@ -763,10 +763,13 @@
     function end_session() {
         if (!uploaded_final) {
             ServerHelper.upload_data('complete', response_log);
-            if (cfg.hasOwnProperty('assignmentId') && cfg['assignmentId'] != '' &&
-                    cfg.hasOwnProperty('turkSubmitTo') && cfg['turkSubmitTo'] != '') {
-                ServerHelper.upload_to_mturk(cfg['turkSubmitTo'], dataSummary()); // turkSubmitTo is parsed out of the original URL from mturk
+            if (ServerHelper.mturk) {
+                ServerHelper.upload_to_mturk(dataSummary());
             }
+            //if (cfg.hasOwnProperty('assignmentId') && cfg['assignmentId'] != '' &&
+            //        cfg.hasOwnProperty('turkSubmitTo') && cfg['turkSubmitTo'] != '') {
+            //    ServerHelper.upload_to_mturk(cfg['turkSubmitTo'], dataSummary()); // turkSubmitTo is parsed out of the original URL from mturk
+            //}
             uploaded_final = true;
         }
         wait_upload_queue();
