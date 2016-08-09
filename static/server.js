@@ -107,7 +107,10 @@ var ServerHelper = {
         //console.log(this.groupToken, this.workerId);
         //this.groupToken = groupToken;
         //this.workerId = workerId;
-        if (this.workerId=='') {
+        if (this.demo_mode) {
+            start_request_url = this.server_url + 'start/' + this.groupToken + '/demo';
+        }
+        else if (this.workerId=='') {
             var start_request_url = this.server_url + 'start/' + this.groupToken;
             console.log('no workerId');
             console.log(start_request_url);

@@ -86,17 +86,26 @@ def start_session(request, groupToken, workerId=''):
     session_list=e.groupSessions.split()[:e.numTokens] # sessionlist of tokens to be used
     c=None
     has_prior = False
+    demo_mode = False
     prior_session=''
     if workerId.lower()=='demo':
         # demo session
         session=session_list[0]
-        consent='' # no consent form for demo
+        config = ''
+        demo_mode=True
     elif workerId!='':
         # check for existing workerId
         prior=s.participants.split()
         for i in prior:
             if ':' in i:
-                (worker,token)=i.split(':')
+                t = i.split(':')
+                if len(t)==2:
+                    worker=t[0]
+                    token=t[1]
+                else:
+                    worker=t[0]
+                    token=t[-1]
+                #(worker,token)=i.split(':')
             else:
                 worker=i
                 token=''
@@ -120,7 +129,7 @@ def start_session(request, groupToken, workerId=''):
                 return HttpResponse(empirical_error('Participant %s on exclusion list' % workerId))
         else:
             session=prior_session
-    else:
+    elif not demo_mode:
         # get new session token
         # sort on lastUpdated
         config_list=session_order(e,session_list) # sorting needs to be done manually in the function above
@@ -149,8 +158,9 @@ def start_session(request, groupToken, workerId=''):
     config=c.configFile
 
     # update last started
-    c.lastStarted=datetime.now()
-    c.save()
+    if not demo_mode:
+        c.lastStarted=datetime.now()
+        c.save()
 
     start_xml={}
     start_xml['Empirical:workerid']=workerId

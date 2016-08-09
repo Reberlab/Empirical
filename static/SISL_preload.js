@@ -33,8 +33,12 @@ function preload_draw() {
             // process configuration information into variables
             parse_config();
             cfg_adjust();
-            consent_object = JSON.parse(ServerHelper.consent_form);
-            consent_form = consent_object['consent_form'];
+            if (ServerHelper.consent_form!='') {
+                consent_object = JSON.parse(ServerHelper.consent_form);
+                consent_form = consent_object['consent_form'];
+            } else {
+                consent_form='';
+            }
             preload_state='load_images';
         }
     } else if(preload_state=='load_images'){
