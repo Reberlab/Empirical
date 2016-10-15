@@ -10,18 +10,9 @@ var debug_preload=true;
 function preload_draw() {
     if (preload_state == 'pre_start') {
         if (debug_preload) console.log("In pre_start");
-
-        //if (cfg.hasOwnProperty('demo')) {
-        //    if (debug_preload) console.log("Demo mode: group token");
-        //    workerId = 'demo';
-        //}
-        //else if (cfg.hasOwnProperty('workerId')) workerId = cfg['workerId'];
-        //else workerId = '';
-
         if (debug_preload) console.log("Group " + cfg['group'] + ", workerid=[" + ServerHelper.workerId + "]");
         preload_state = 'start_wait';
         ServerHelper.start_request();
-
     } else if(preload_state=='start_wait'){
         if(ServerHelper.start_received) {
             if(ServerHelper.fatal_error) {
@@ -33,11 +24,25 @@ function preload_draw() {
             // process configuration information into variables
             parse_config();
             cfg_adjust();
-            if (ServerHelper.consent_form!='') {
-                consent_object = JSON.parse(ServerHelper.consent_form);
-                consent_form = consent_object['consent_form'];
+            if (ServerHelper.consent_string!='') {
+                console.log("Consent:");
+                console.log(ServerHelper.consent_string);
+                try {
+                    consent_object = JSON.parse(ServerHelper.consent_string);
+                    //for (var key in consent_object) {
+                    //   console.log(key, consent_object[key]);
+                    //}
+                    ServerHelper.consent_form = consent_object['consent_form'];
+                    //for (var key in consent_form) {
+                    //    console.log(key, consent_form[key]);
+                    //}
+                } catch (e) {
+                    console.log("error");
+                    console.log(e);
+                    ServerHelper.consent_form={};
+                }
             } else {
-                consent_form='';
+                consent_form={};
             }
             preload_state='load_images';
         }

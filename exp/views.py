@@ -98,8 +98,11 @@ def one_experiment(request, expNumber=''):
                 #token_order.append((session_order[i.sessionToken],i))
         else:
             token_order.append((99999, d, i))
-    token_order.sort()
-    (count_list, date_list, session_list)=zip(*token_order)
+    if token_order!=[]:
+        token_order.sort()
+        (count_list, date_list, session_list)=zip(*token_order)
+    else:
+        session_list=[]
 
     study=e.study
     applet_url=request.build_absolute_uri(static(study.appletName))
@@ -116,17 +119,20 @@ def edit_experiment(request, expNumber='', studyNumber=''):
     else:
         e=None
 
+    try:
+        parent_study=Study.objects.get(pk=int(studyNumber))
+    except:
+        return render(request, 'Object_not_found.html', {'token': studyNumber, 'type': 'Study'})
+
     # edit the experiment object
     if request.method=="POST":
         exp_form = ExperimentForm(request.POST, instance=e)
         if exp_form.is_valid():
             e=exp_form.save(commit=False)
             e.user=request.user.username
-            #e.create_token()
+            e.study=parent_study
+            e.create_token()
             e.save()
-            #s = Session.objects.filter(exp=e.pk)
-            #study = e.study
-            #return render(request, 'experiment_info.html', {'exp': e, 'sessions': s, 'parent': study})
             return redirect('one_experiment', expNumber="%d" % e.pk)
         else:
             return render(request, 'Object_not_found.html', {'token': expNumber, 'type': 'Experiment creation'})
@@ -171,7 +177,8 @@ def new_config(request, expNumber=''):
             c.exp=e
             c.make_token()
             c.save()
-            #return render(request, 'display_config.html', {'session': c, 'reports':None})
+            # add to exp session list
+            e.add_sessions(c.sessionToken)
             return redirect('one_session', sessionToken=c.sessionToken)
         else:
             return HttpResponse("Unable to parse config file edit")
@@ -206,8 +213,16 @@ def copy_config(request,sessionToken):
     except:
         return render(request, 'Object_not_found.html', {'token': sessionToken, 'type': 'Session'})
 
-    new_cfg=Session.objects.create_session(s.name,s.exp,s.configFile,request.user.username)
-    return render(request,'display_config.html', {'session': new_cfg, 'reports':None})
+    # add _c to the name to indicate copy
+    new_name=s.name+'_c'
+    new_cfg=Session.objects.create_session(new_name,s.exp,s.configFile,request.user.username)
+
+    # increase the session token count in the experiemnt
+    new_cfg.exp.add_sessions(new_cfg.sessionToken)
+    new_cfg.exp.save()
+
+    # copy is probably going to be called as part of an edit, so jump to the edit form (name can be edited here too)
+    return redirect('edit_config', sessionToken=new_cfg.sessionToken)
 
 def add_token_creation_event(sessionToken,studyName):
     key=Session.objects.get(sessionToken=sessionToken)

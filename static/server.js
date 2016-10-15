@@ -18,7 +18,8 @@ var ServerHelper = {
     groupToken: '',
     sessionToken: "",
     config_file: "",
-    consent_form: "",
+    consent_string: "",  // this is the original JSON string from Empirical
+    consent_form: {},    // which gets parsed into an object
     workerId: "",
     prompt_string: "Please enter your User ID:",
     fatal_error: false,
@@ -142,11 +143,12 @@ var ServerHelper = {
                 console.log("session "+ ServerHelper.sessionToken);
                 ServerHelper.workerId = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","workerid")[0].childNodes[0].nodeValue;
                 ServerHelper.config_file = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","config")[0].childNodes[0].nodeValue;
-                ServerHelper.consent_form = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","consent")[0].childNodes[0].nodeValue;
+                ServerHelper.consent_string = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","consent")[0].childNodes[0].nodeValue;
                 console.log("session "+ ServerHelper.sessionToken);
                 console.log("worker "+ServerHelper.workerId);
-                console.log("config "+ServerHelper.config_file.slice(0,200));
-                // what happens if anything isn't parse properly?
+                // console.log("config "+ServerHelper.config_file.slice(0,200));
+                // console.log("consent "+ServerHelper.consent_form.slice(0,200));
+                // what happens if the XML isn't parsed properly?
             } else {
                 ServerHelper.fatal_error=true;
                 ServerHelper.error = ServerHelper.xmlhttp.statusText;
