@@ -80,7 +80,7 @@ var ServerHelper = {
             while (!name_ok) {
                 workerId = prompt("User id can only have numbers, letters or underscore:");
                 name_ok = /^[a-z0-9_]+$/i.test(workerId);
-            }
+            }response_log.push("SubjectID: " + workerId);
         }
         if (params.hasOwnProperty('assignmentId')) { // this is an mturk session
             this.mturk=true;
