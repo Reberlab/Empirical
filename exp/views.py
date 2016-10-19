@@ -179,6 +179,7 @@ def new_config(request, expNumber=''):
             c.save()
             # add to exp session list
             e.add_sessions(c.sessionToken)
+            e.save()
             return redirect('one_session', sessionToken=c.sessionToken)
         else:
             return HttpResponse("Unable to parse config file edit")
