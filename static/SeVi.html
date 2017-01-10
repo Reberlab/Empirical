@@ -645,6 +645,64 @@
         ctx.fillText("Press any key to begin", layout.cue_area / 2.0, layout.height / 2);
 
         if (preload_state == 'begin') {
+            preload_state = 'start_wait';
+            ServerHelper.start_request();
+        } else if (preload_state == 'start_wait') {
+            if (ServerHelper.start_received) {
+                if (ServerHelper.fatal_error) {
+                    if (debug_preload) console.log(ServerHelper.error);
+                    preload_state = 'done_preload';
+                    return;
+                }
+                if (debug_preload) console.log("Got config info, sessionToken= " + ServerHelper.sessionToken);
+                // process configuration information into variables
+                parse_config();
+                cfg_adjust();
+                response_log.push("Experiment app: " + _version);
+                response_log.push("Source URL: " + document.URL);
+                response_log.push("Run on " + new Date());
+                response_log.push("");
+                //for (key in cfg) {
+                //    response_log.push(key + ": " + cfg[key]);
+                //}
+                response_log.push("##########");
+
+                // consent form processing would go here if being used...
+                ServerHelper.request_status();
+                preload_state = 'status_wait';
+            }
+        } else if (preload_state == 'status_wait') {
+            if (ServerHelper.status_received == true) {
+
+                // set starting variables to defaults
+                current_length = 2;
+                trial_number = 0; // last trial completed before this session
+                stats.reset();
+                initialize_screen();
+                session_start = window.performance.now();
+                stats.done_break(); // reset break counters
+                log_event('start', []);
+
+                parse_status();  // this will override defaults if there is a status
+                preload_state='loaded';
+                console.log("Status received, starting");
+                requestId = window.requestAnimationFrame(draw);
+                return;
+            }
+        } else if(preload_state == 'loaded' ) {
+            console.log("Draw() should be running...")
+        }
+        requestId = window.requestAnimationFrame(preload_draw);
+    }
+
+    function old_preload_draw() {
+        ctx.textAlign = "center";
+        ctx.fillStyle = 'black';
+        ctx.font = "20px Arial";
+        ctx.fillText("Welcome to SeVi WM training", layout.cue_area / 2.0, layout.height / 2 - 50);
+        ctx.fillText("Press any key to begin", layout.cue_area / 2.0, layout.height / 2);
+
+        if (preload_state == 'begin') {
             if (cfg.hasOwnProperty('group')) {
                 // get session token from group
                 if (cfg.hasOwnProperty('demo')) {
@@ -737,9 +795,14 @@
 
     function main() {
         var url=document.URL;
-        var params=parse_url(url); // function in server.js
+        var params=ServerHelper.empirical_start(url); // function in server.js to set up everything
 
-        if (params=={} || (params.hasOwnProperty('assignmentId') && params['assignmentId']=="ASSIGNMENT_ID_NOT_AVAILABLE")) {
+        if (ServerHelper.fatal_error) {
+            terminate(ServerHelper.error);
+            return;
+        }
+
+        if (ServerHelper.demo_mode) {
             console.log("Run demo...");
             demo_mode=true;
             cfg['workerId']='demo';
