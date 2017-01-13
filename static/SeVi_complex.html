@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>SeVi WM training</title>
+    <style>
+        canvas {
+            padding-left: 0;
+            padding-right: 0;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+        }
+    </style>
+</head>
+<body onload="main()">
+<div>
+    <canvas id="mainWin" width="600" height="600" style="border:1px solid #000000;"></canvas>
+</div>
+
+<script src="server.js"></script>
+<script src="cue_mover.js"></script>
+<script src="SISL_preload.js"></script>
+
+<script>
+    // Canvas required globals
+    var canvas = document.getElementById("mainWin");
+    var _version = "SeVi.js 0.2 Mar 2016";
+    var ctx = canvas.getContext("2d");
+    var requestId = 0;
+
+    var layout = {
+        width: 600,
+        height: 600,
+        cue_area: 400,
+        feedback_area: 200,
+        background: function() {
+            // draw any background decorations
+            // function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            radius = 15; x=25; y=25; width=this.cue_area-50; height=this.height-50;
+            ctx.fillStyle='blue';
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fillStyle=cfg['background_color'];
+            ctx.fill();
+
+            if (demo_mode) {
+                ctx.textAlign="center";
+                ctx.fillStyle = 'black';
+                ctx.font = "32px Arial";
+                ctx.fillText("Demonstration Mode",layout.cue_area/2.0,layout.height-50);
+            }
+        },
+        clear: function() {
+            ctx.clearRect(0,0, this.width, this.height);
+            this.background();
+        },
+    }
+
+    // speed/delay adjustments (in addition to length adjustments) -- ??
+
+    var sessionToken='';
+    var config_parsed=false;
+    var cfg={};
+    var response_log=[];
+
+    var initialized=false;
+    var cue_set = [];
+    var lane_set = [];
+    var anim_list = [];
+
+    var session_state=0;
+    var current_sequence=[];
+    var red_seq=[];
+    var blue_seq=[];
+    var one_list=[];
+    var zero_list=[];
+    var shuffle_list=[];
+    var current_cue=0;
+    var blue_seq_element=0;
+    var red_seq_element=0;
+    var current_length;
+    var current_speed;
+    var current_delay;
+    var response_sequence=[];
+    var num_responses=0;
+    var current_correct;
+    var trial_number;
+    var trials_since_break;
+    var time_since_break;
+    var streak=0;
+    var last_launch = window.performance.now();
+    var session_start = window.performance.now();
+    var trial_start = window.performance.now();
+    var click_zone=[0,0,0,0];
+    var trial_time_out=0;
+    var demo_mode=false;
+
+    var stats = {
+        reset: function() {
+            this.max_length_today=0;
+            this.max_length_ever=0;
+            this.trials_today=0;
+            this.trials_total=0;
+            this.correct_by_length=[0,0,0];
+            this.total_by_length=[0,0,0];
+            this.pc=0;
+            this.time_today=0;
+            this.time_total=0;
+            this.current_length=current_length;
+            this.trials_since_break=0;
+            this.time_since_break=0;
+            this.trials_prior=0;
+            this.time_prior=0;
+            this.prior_session=0;
+        },
+        score: function(length, correct, trial_time){
+            this.trials_today++;
+            this.trials_since_break++;
+            this.trials_total++;
+            this.time_today+=trial_time;
+            this.time_since_break+=trial_time;
+            this.time_total+=trial_time;
+            this.current_length=length;
+            // lengthen the scoring areas to the current length if needed
+            while(length>=this.correct_by_length.length) this.correct_by_length.push(0);
+            while(length>=this.total_by_length.length) this.total_by_length.push(0);
+            if(correct) {
+                if(length>this.max_length_today) this.max_length_today=length;  // could pop up a congrats message too
+                if(length>this.max_length_ever) this.max_length_ever=length;
+                this.correct_by_length[length]++;
+            }
+            this.total_by_length[length]++;
+            this.pc=(this.correct_by_length[length]*100)/this.total_by_length[length];
+        },
+        new_length: function() {
+            this.current_length=current_length;
+            this.pc=(this.correct_by_length[current_length]*100)/this.total_by_length[current_length];
+        },
+        done_break: function() {
+            this.trials_since_break=0;
+            this.time_since_break=0;
+        },
+    }
+
+    function activate_pos_flash(key_lane) {
+        for(var i=0;i<anim_list.length;i++) {
+            if(anim_list[i].anim_type=='flash-pos' && anim_list[i].anim_args[0]==key_lane) {
+                anim_list[i].active=true;
+                anim_list[i].frame_count=0; // reset frame count just in case it is already active
+                return;
+            }
+        }
+    }
+
+    function activate_neg_flash(key_lane) {
+        for(var i=0;i<anim_list.length;i++) {
+            if(anim_list[i].anim_type=='flash-neg' && anim_list[i].anim_args[0]==key_lane) {
+                anim_list[i].active=true;
+                anim_list[i].frame_count=0; // reset frame count just in case it is already active
+                return;
+            }
+        }
+    }
+
+    function activate_float_text(text,color) {
+        var font=cfg['float_text_size'].toString()+"px Arial";
+        var frames=5;
+        var x=layout.cue_area/2;
+        var y=cfg['float_text_y'];
+        for(var i=0;i<anim_list.length;i++) {
+            if (anim_list[i].anim_type == 'float-text' && anim_list[i].active == false) {
+                anim_list[i].float_text(text, x, y, color, font, frames);
+                return;
+            }
+        }
+        // fails to activate because no anim item is available...
+    }
+
+    function get_delay() {
+        var i=current_length-1;
+        var last=cfg['response_delay'][cfg['response_delay'].length-1];
+        while(i>=cfg['response_delay'].length) {
+            cfg['response_delay'].push(last);
+        }
+        return cfg['response_delay'][i];
+    }
+
+    function seq_as_string() {
+        var s='';
+        for (var i=0;i<current_length;i++) {
+            s=s+current_sequence[i].toString();
+            if(i<(current_length-1)) s=s+'-';
+        }
+        return s;
+    }
+
+    function fillArray(value, len) {
+        var arr = [];
+        for (var i = 0; i < len; i++) {
+            arr.push(value);
+        }
+        return arr;
+    }
+
+
+    function shuffle(a) {
+        var j, x, i;
+        for (i = a.length; i; i--) {
+            j = Math.floor(Math.random() * i);
+            x = a[i - 1];
+            a[i - 1] = a[j];
+            a[j] = x;
+        }
+    }
+
+    function next_sequence() {
+        // check for break here
+        if(stats.trials_since_break>=cfg['breaks'][0] || stats.time_since_break>=cfg['breaks'][1]) {
+            // self-terminated break
+            session_state=1;
+            send_status();
+            ServerHelper.upload_data('partial',response_log);
+            return;
+        }
+        
+        if(stats.trials_today>=cfg['session_length'][0] || stats.time_today>=cfg['session_length'][1]) {
+            // Session is done
+            session_state=7;
+            return;
+        }
+        trial_number++;
+        // set sequence
+        for(var i=0;i<current_length;i++){
+            current_sequence[i]=Math.floor(Math.random()*cfg['num_keys']);
+            while(i>0 && current_sequence[i]==current_sequence[i-1]) // no repeats
+                current_sequence[i]=Math.floor(Math.random()*cfg['num_keys']);
+        }
+        red_seq=current_sequence.slice(0,current_sequence.length/2);
+        blue_seq=current_sequence.slice(current_sequence.length/2,current_sequence.length);
+        one_list=fillArray(1,red_seq.length);
+        zero_list=fillArray(0,blue_seq.length);
+        shuffle_list=zero_list.concat(one_list);
+        shuffle(shuffle_list);
+        current_cue=0;
+        blue_seq_element=0;
+        red_seq_element=0;
+        current_delay=get_delay();
+        current_correct=false;
+        trial_time_out=cfg['max_response_time']; // time out starts at max response time
+        session_state=2;
+        num_responses=0;
+        last_launch = window.performance.now();
+        trial_start = window.performance.now();
+        log_event('new-sequence',[current_length,current_delay,current_speed,seq_as_string()]);
+        response_log.push("Red Seq: " + red_seq);
+        response_log.push("Blue Seq: " + blue_seq);
+        response_log.push("Shuffle: " + shuffle_list);
+        //console.log('Response log '+response_log.length+' lines');
+    }
+
+    function adjust_difficulty() {
+        if(streak>=cfg['length_step_up']) {
+            current_length=current_length+2;
+            stats.new_length();
+            streak=0;
+            //console.log("new length "+current_length);
+            log_event('length-increased',[current_length]);
+        } else if((-streak)>=cfg['length_step_down'] && current_length>=4) {
+            current_length=current_length-2;
+            stats.new_length();
+            streak=0;
+            //console.log("new length "+current_length);
+            log_event('length-decreased',[current_length]);
+        }
+    }
+
+    function check_responses() {
+        var trial_time = (window.performance.now()-trial_start)/1000;
+
+        if(response_sequence.length<red_seq.length) {
+            if(streak<=0) streak--;
+            else streak=(-1);
+            log_event('time-out',[seq_as_string(response_sequence)]);
+            stats.score(current_length,false,trial_time);
+            adjust_difficulty();
+            return false;
+        }
+        for(var i=0;i<current_length/2;i++) if(response_sequence[i]!=red_seq[i]) {
+            if(streak<=0) streak--;
+            else streak=(-1);
+            log_event('incorrect',[seq_as_string(response_sequence)]);
+            stats.score(current_length,false,trial_time);
+            adjust_difficulty();
+            return false;
+        }
+        if(streak>=0) streak++;
+        else streak=1;
+        log_event('correct',[seq_as_string(response_sequence)]);
+        stats.score(current_length,true,trial_time);
+        adjust_difficulty();
+        return true;
+    }
+
+    function instruct_font() {
+        ctx.textAlign="center";
+        ctx.fillStyle = 'black';
+        ctx.font = cfg['instruct_text_size'].toString()+"px Arial";
+    }
+
+    function draw() {
+        var curr_time=window.performance.now();
+        var elap = (curr_time-last_launch)/1000.0;  // seconds since last cue launch
+
+        layout.clear();
+        if(session_state==0) { // preload
+            // regular instruction font is too big
+            ctx.textAlign="center";
+            ctx.fillStyle = 'black';
+            ctx.font = "20px Arial";
+            if(stats.time_total==0) { // new participant
+                ctx.fillText("Welcome to SeVi WM training",layout.cue_area/2.0,layout.height/2-80);
+                ctx.font = "16px Arial";
+                ctx.fillText("To play the game, first watch the falling circles",layout.cue_area/2.0,layout.height/2-60);
+                ctx.fillText("Remember the order of the red circles ONLY",layout.cue_area/2.0,layout.height/2-40);
+                ctx.fillText("(ignore the blue circles)",layout.cue_area/2.0,layout.height/2-20);
+                ctx.fillText("When you see Respond, repeat the",layout.cue_area/2.0,layout.height/2);
+                ctx.fillText("red sequence back using keys or the mouse",layout.cue_area/2.0,layout.height/2+20);
+                ctx.fillText("It will get harder when you get the answers right",layout.cue_area/2.0,layout.height/2+40);
+                ctx.fillText("And easier if you are getting them wrong",layout.cue_area/2.0,layout.height/2+60);
+                ctx.fillText("Press any key to begin",layout.cue_area/2.0,layout.height/2+100);
+            } else {
+                ctx.fillText("Welcome back SeVi WM training",layout.cue_area/2.0,layout.height/2-150);
+                ctx.font = "16px Arial";
+                ctx.fillText("It's been "+time_report(stats.prior_session)+" since your last session",layout.cue_area/2.0,layout.height/2-120);
+                ctx.fillText("Total time trained so far: "+time_report(stats.time_total),layout.cue_area/2.0,layout.height/2-100);
+                ctx.fillText("Total trials trained so far: "+stats.trials_total.toFixed(0),layout.cue_area/2.0,layout.height/2-80);
+                ctx.fillText("Time last session: "+time_report(stats.time_prior),layout.cue_area/2.0,layout.height/2-60);
+                ctx.fillText("Trials last session: "+stats.trials_prior.toFixed(0),layout.cue_area/2.0,layout.height/2-40);
+                ctx.font = "20px Arial";
+                ctx.fillText("Press any key to begin",layout.cue_area/2.0,layout.height/2);
+            }
+        } else if(session_state==1) { // break, show stats and any key to continue
+            instruct_font();
+            stats.done_break();
+            ctx.fillText("Rest break",layout.cue_area/2.0,cfg['instruct_y']);
+            ctx.fillText("Press any key (or click)",layout.cue_area/2.0,cfg['instruct_y']+50);
+            ctx.fillText("to continue",layout.cue_area/2.0,cfg['instruct_y']+100);
+        } else if(session_state==2) { // show sequence
+            for (var i=0;i<lane_set.length;i++) lane_set[i].draw_pad();
+            for (i = 0; i<anim_list.length; i++) anim_list[i].draw();
+            instruct_font();
+            ctx.fillText("Watch",layout.cue_area/2.0,cfg['instruct_y']);
+
+            // cue loop: check for launching new cues & move existing
+            if (current_cue<current_length && elap >= (cfg['cue_spacing']*current_speed)) {
+                if(shuffle_list[current_cue]==0) {
+                    launch_cue(blue_seq[blue_seq_element], curr_time, current_cue, false);
+                    current_cue++;
+                    blue_seq_element++;
+                    last_launch = curr_time;
+                }
+                else if(shuffle_list[current_cue]==1) {
+                    launch_cue(red_seq[red_seq_element], curr_time, current_cue, false);
+                    current_cue++;
+                    red_seq_element++;
+                    last_launch = curr_time;
+                }
+
+            }
+            var not_empty=false;
+            for (i = 0; i < cue_set.length; i++) {
+                if (cue_set[i].active == true) {
+                    cue_set[i].move();
+                    cue_set[i].draw();
+                    not_empty=true;
+                }
+            }
+            if (not_empty==false && current_cue>=current_length) {
+                last_launch = curr_time; // to set up delay timing
+                session_state=3;
+                log_event('seq-finished',[]);
+            }
+        } else if(session_state==3) { // delay until keypresses allowed
+            if (elap < current_delay) {
+                for (var i=0;i<lane_set.length;i++) lane_set[i].draw_pad();
+                for (i = 0; i<anim_list.length; i++) anim_list[i].draw();
+                instruct_font();
+                ctx.fillText("Wait...",layout.cue_area/2.0,cfg['instruct_y']);
+            } else {
+                session_state=4;
+                log_event('start-responses',[]);
+            }
+        } else if(session_state==4) { // collect key press responses
+            ctx.strokeRect(click_zone[0],click_zone[1],click_zone[2]-click_zone[0],click_zone[3]-click_zone[1]);
+            if(num_responses<current_length/2) {
+                for (i=0;i<lane_set.length;i++) lane_set[i].draw_pad();
+                ctx.font = "16px Arial";
+                ctx.fillText("Respond (red sequence only)",layout.cue_area/2.0,cfg['instruct_y']);
+                for (i = 0; i<anim_list.length; i++) anim_list[i].draw();
+
+                if(elap > cfg['initial_response_min'] && num_responses==0) {
+                    // no response at all, go into time-out mode
+                    send_status();  // log status just in case the participant doesn't return
+                    session_state=6;
+                }
+                if(elap > trial_time_out) {
+                    current_correct=check_responses(); // which will be false
+                    session_state=5;
+                    last_launch=curr_time;
+                } else if (elap>(trial_time_out-3.0)) {
+                    // give 3..2..1.. countdown
+                    var msg=(Math.floor((trial_time_out-elap))+1).toString()+"...";
+                    instruct_font();
+                    ctx.fillText(msg,layout.cue_area/2.0,cfg['instruct_y']+50);
+                }
+            } else {
+                current_correct=check_responses();
+                session_state=5;
+                last_launch=curr_time;
+            }
+        } else if(session_state==5) { // feedback and any key to continue
+            for (i=0;i<lane_set.length;i++) lane_set[i].draw_pad();
+            for (i = 0; i<anim_list.length; i++) anim_list[i].draw();
+            instruct_font();
+            if(current_correct) ctx.fillText("Correct!", layout.cue_area/2.0,cfg['instruct_y']);
+            else ctx.fillText("Not quite", layout.cue_area/2.0,cfg['instruct_y']);
+            if(elap>cfg['next_trial_delay']) { // next trial in 2s or when key pressed
+                next_sequence();
+            }
+        } else if(session_state==6) {
+            // Are you still there?
+            instruct_font();
+            ctx.fillText("Are you still there?", layout.cue_area / 2.0, cfg['instruct_y']);
+            log_event('no-response', []);
+        }
+        else if(session_state==7) {
+            instruct_font();
+            ctx.fillText("All done for today", layout.cue_area / 2.0, cfg['instruct_y']);
+            ctx.fillText("Thanks!", layout.cue_area / 2.0, cfg['instruct_y']+50);
+            end_session();
+            return;
+        }
+        requestId = window.requestAnimationFrame(draw);
+    }
+
+    function lane_from_key(k) {
+        var key_lane=-1;
+        for(var i=0;i<cfg['key_list'].length;i++) {
+            if(k==cfg['key_list'][i]){
+                key_lane=i;
+                return key_lane;
+            }
+        }
+        return key_lane;
+    }
+
+    function keypress(e) {
+        var k = String.fromCharCode(e.keyCode);
+
+        if(session_state==0 || session_state==1 || session_state==5 || session_state==6){
+            // press any key to continue
+            next_sequence();
+        } else if(session_state==4) { // collecting response sequence
+            var key_lane=lane_from_key(k);
+            if(key_lane>=0) {
+                response_sequence[num_responses]=key_lane;
+                num_responses++;
+                activate_pos_flash(key_lane);
+                log_event('key',[key_lane,k]);
+                // extend time out window if necessary
+                var elap = (window.performance.now()-last_launch)/1000.0;  // seconds since last cue launch
+                trial_time_out=Math.max(trial_time_out,elap+cfg['initial_response_min']);
+            }
+            else {
+                console.log('bad response '+k);
+                log_event('stray-key',[k]);
+            }
+        } else if(session_state==2 || session_state==3) { // should be no responses, so warn the participant
+            // Allowing termination during presentation
+            if(k=='Q') {
+                console.log("Early termination");
+                session_state = 7; // should end the session
+            }
+            key_lane=lane_from_key(k);
+            if(key_lane>=0) {
+                activate_neg_flash(key_lane);
+                log_event('early-key',[key_lane,k]);
+                activate_float_text('Hold on','black');
+            }
+        }
+    }
+
+    function lane_from_click(click_loc) {
+        if(click_loc[0]>=click_zone[0] && click_loc[0]<=click_zone[2] && click_loc[1]>=click_zone[1] && click_loc[1]<=click_zone[3]) {
+            // find closest pad
+            var key_lane = 0;
+            var dist = distance3(click_loc, lane_set[0].target);
+            //console.log(click_loc,dist,lane_set[0].target);
+            for (var i = 1; i < lane_set.length; i++) {
+                //console.log(dist,lane_set[i].target);
+                if (distance3(click_loc, lane_set[i].target) < dist) {
+                    key_lane = i;
+                    dist = distance3(click_loc, lane_set[i].target);
+                }
+            }
+            return key_lane;
+        }
+        return -1;
+    }
+
+    function mouseClick(e) { // allow mouse responses as well as keys
+        if(session_state==0 || session_state==1 || session_state==5 || session_state==6) {
+            // press any key to continue, accept clicks
+            next_sequence();
+        } else if(session_state==4) {
+            var rect = canvas.getBoundingClientRect();
+            var click_loc=[e.clientX - rect.left, e.clientY - rect.top, 100];
+            var key_lane=lane_from_click(click_loc);
+            if(key_lane>=0) {
+                response_sequence[num_responses] = key_lane;
+                num_responses++;
+                activate_pos_flash(key_lane);
+                log_event('mouseclick',[key_lane]);
+                // extend timeout if necessary
+                var elap = (window.performance.now()-last_launch)/1000.0;  // seconds since last cue launch
+                trial_time_out=Math.max(trial_time_out,elap+cfg['initial_response_min']);
+            } else {
+                log_event('stray-mouseclick',[]);
+            }
+        } else if(session_state==2 || session_state==3) { // should be no responses, so warn the participant
+            // is mouse click close enough to count?
+            rect = canvas.getBoundingClientRect();
+            click_loc=[e.clientX - rect.left, e.clientY - rect.top, 100];
+            key_lane=lane_from_click(click_loc);
+            if(key_lane>=0) {
+                activate_neg_flash(key_lane);
+                log_event('early-click',[key_lane,key_lane]);
+                activate_float_text('Hold on','black');
+            }
+        }
+    }
+
+    function log_event(event_type,args) { // args[0] always trial_num for event, others vary
+        var elap = (window.performance.now() - session_start)/1000.0; // time stamp
+        var line = elap.toFixed(2)+"\t"+trial_number+"\t"+event_type+"\t";
+        for(var i=1;i<args.length;i++) line+="\t"+args[i].toString();
+        response_log.push(line);
+    }
+
+    function initialize_screen(){
+        click_zone=[cfg['target_x'][0]-cfg['response_box'],cfg['target_y'][0]-cfg['response_box'],cfg['target_x'][0]+cfg['response_box'],cfg['target_y'][0]+cfg['response_box']];
+        for (var i = 0; i < cfg['num_keys']; i++) {
+            start_loc = [cfg['start_x'][i], cfg['start_y'][i], cfg['start_z'][i]];
+            target_loc = [cfg['target_x'][i], cfg['target_y'][i], cfg['target_z'][i]];
+            delta = [cfg['delta_x'][i], cfg['delta_y'][i], cfg['delta_z'][i]];
+            b = new lane(start_loc, target_loc, delta, cfg['cue_colors'][i], cfg['cue_size'], cfg['target_color'], cfg['target_diameter']);
+            if (cfg['show_letters'] == 1) {
+                b.add_letter(cfg['letter_x'][i], cfg['letter_y'][i], cfg['letter_color'], cfg['letter_size'], cfg['key_list'][i]);
+            }
+            lane_set.push(b);
+            b.draw_pad();
+            // set allowable click zone
+            if((cfg['target_x'][i]-cfg['response_box'])<click_zone[0]) click_zone[0]=(cfg['target_x'][i]-cfg['response_box']);
+            if((cfg['target_y'][i]-cfg['response_box'])<click_zone[1]) click_zone[1]=(cfg['target_y'][i]-cfg['response_box']);
+            if((cfg['target_x'][i]+cfg['response_box'])>click_zone[2]) click_zone[2]=(cfg['target_x'][i]+cfg['response_box']);
+            if((cfg['target_y'][i]+cfg['response_box'])>click_zone[3]) click_zone[3]=(cfg['target_y'][i]+cfg['response_box']);
+        }
+        var xloc_text=layout.width-layout.feedback_area;
+        for (i = 0; i < cfg['on_screen_feedback'].length; i++) {
+            var a = new anim('text', 0, []);
+            a.add_text(xloc_text, cfg['on_screen_feedback'][i],cfg['stat_text_size']);
+            anim_list.push(a);
+        }
+        // keypad flash animation objects
+        for (i = 0; i < lane_set.length; i++) {
+            a = new anim('flash-pos', cfg['feedback_frames'], [i, cfg['feedback_pos_color']]);
+            a.active = false;
+            a.dynamic = true;
+            anim_list.push(a);
+            a = new anim('flash-neg', cfg['feedback_frames'], [i, cfg['feedback_neg_color']]);
+            a.active = false;
+            a.dynamic = true;
+            anim_list.push(a);
+        }
+        a = new anim('float-text',5,[]);
+        a.active = false;
+        a.dynamic = true;
+        a.text_size=cfg['float_text_size'];
+        anim_list.push(a);
+        current_speed=cfg['cue_speed'];
+    }
+
+    function send_status() {
+        if (demo_mode) return; // don't do status updates if in demo mode
+        var status_log=["Date: "+new Date().toString(),"Version: "+_version];
+        status_log.push("Length: "+current_length.toString());
+        status_log.push("Trials: "+stats.trials_today.toString());
+        status_log.push("TotalTrials: "+(stats.trials_today+stats.trials_total).toString());
+        status_log.push("Time: "+stats.time_today.toString());
+        status_log.push("TotalTime: "+(stats.time_today+stats.time_total).toString());
+        status_log.push("CorrectByLength: "+stats.correct_by_length.toString());
+        status_log.push("TotalByLength: "+stats.total_by_length.toString());
+        ServerHelper.upload_data('status',status_log);
+    }
+
+    function parse_status() {
+        //console.log(ServerHelper.status);
+        var lines=ServerHelper.status.split('\n');
+        for(var i=0;i<lines.length;i++) {
+            t=lines[i].split(' ');
+            //console.log(t);
+            if(t.length>1) {
+                if (t[0] == 'TotalTrials:') {
+                    stats.trials_total=Number(t[1]);
+                } else if(t[0]=='TotalTime:') {
+                    stats.time_total=Number(t[1]);
+                } else if(t[0]=='Length:') {
+                    current_length=Number(t[1]);
+                    stats.new_length();
+                } else if(t[0]=='Date:') { // last run
+                    var last_session=Date.parse(t.slice(1).join());
+                    stats.prior_session=(Date.now()-last_session)/1000.0;
+                } else if(t[0]=='Trials:') {
+                    stats.trials_prior=Number(t[1]);
+                } else if(t[0]=='Time:') {
+                    stats.time_prior=Number(t[1]);
+                } else if(t[0]=='CorrectByLength:') {
+                    var v=t[1].split(',');
+                    for(var j=0;j<v.length;j++) {
+                        if(j==stats.correct_by_length.length) stats.correct_by_length.push(Number(v[j]));
+                        else stats.correct_by_length[j]=Number(v[j]);
+                    }
+                } else if(t[0]=='TotalByLength:') {
+                    var v=t[1].split(',');
+                    for(var j=0;j<v.length;j++) {
+                        if(j==stats.total_by_length.length) stats.total_by_length.push(Number(v[j]));
+                        else stats.total_by_length[j]=Number(v[j]);
+                    }
+                } else {
+                    console.log("Unrecognized token "+t[0]);
+                }
+            }
+        }
+        console.log("Status parsed");
+    }
+
+    function warn_termination() {
+        // data and status upload
+        send_status();
+        ServerHelper.upload_data('partial',response_log);
+        return "Session not completed yet."
+    }
+
+     // partial uploads at breaks
+    function end_session() {
+        window.onbeforeunload = null;
+        console.log("Session ended");
+        if (demo_mode) return; // don't send data in demo_mode
+        send_status();
+        ServerHelper.upload_data('complete',response_log);
+        console.log("Data uploads requested");
+    }
+
+    function terminate(msg){
+        window.onbeforeunload = null;
+        ctx.clearRect(0,0, 800, 800);
+        ctx.font = "24px Arial";
+        ctx.fillStyle='black';
+        ctx.textAlign="center";
+        ctx.fillText("Error: "+msg, 200,300);
+        ctx.fillText("Please contact Experimenter", 200,350);
+        window.cancelAnimationFrame(requestId);
+    }
+
+    var preload_state='begin';
+
+    function preload_draw() {
+        ctx.textAlign = "center";
+        ctx.fillStyle = 'black';
+        ctx.font = "20px Arial";
+        ctx.fillText("Welcome to SeVi WM training", layout.cue_area / 2.0, layout.height / 2 - 50);
+        ctx.fillText("Press any key to begin", layout.cue_area / 2.0, layout.height / 2);
+
+        if (preload_state == 'begin') {
+            preload_state = 'start_wait';
+            ServerHelper.start_request();
+        } else if (preload_state == 'start_wait') {
+            if (ServerHelper.start_received) {
+                if (ServerHelper.fatal_error) {
+                    if (debug_preload) console.log(ServerHelper.error);
+                    preload_state = 'done_preload';
+                    return;
+                }
+                if (debug_preload) console.log("Got config info, sessionToken= " + ServerHelper.sessionToken);
+                // process configuration information into variables
+                parse_config();
+                cfg_adjust();
+                response_log.push("Experiment app: " + _version);
+                response_log.push("Source URL: " + document.URL);
+                response_log.push("Run on " + new Date());
+                response_log.push("");
+                //for (key in cfg) {
+                //    response_log.push(key + ": " + cfg[key]);
+                //}
+                response_log.push("##########");
+
+                // consent form processing would go here if being used...
+                ServerHelper.request_status();
+                preload_state = 'status_wait';
+            }
+        } else if (preload_state == 'status_wait') {
+            if (ServerHelper.status_received == true) {
+
+                // set starting variables to defaults
+                current_length = 2;
+                trial_number = 0; // last trial completed before this session
+                stats.reset();
+                initialize_screen();
+                session_start = window.performance.now();
+                stats.done_break(); // reset break counters
+                log_event('start', []);
+
+                parse_status();  // this will override defaults if there is a status
+                preload_state='loaded';
+                console.log("Status received, starting");
+                requestId = window.requestAnimationFrame(draw);
+                return;
+            }
+        } else if(preload_state == 'loaded' ) {
+            console.log("Draw() should be running...")
+        }
+        requestId = window.requestAnimationFrame(preload_draw);
+    }
+
+    function old_preload_draw() {
+        ctx.textAlign = "center";
+        ctx.fillStyle = 'black';
+        ctx.font = "20px Arial";
+        ctx.fillText("Welcome to SeVi WM training", layout.cue_area / 2.0, layout.height / 2 - 50);
+        ctx.fillText("Press any key to begin", layout.cue_area / 2.0, layout.height / 2);
+
+        if (preload_state == 'begin') {
+            if (cfg.hasOwnProperty('group')) {
+                // get session token from group
+                if (cfg.hasOwnProperty('demo')) {
+                    console.log("Demo mode: group token");
+                    workerId = 'demo';
+                    demo_mode=true;
+                    window.onbeforeunload=null;
+                } else if (cfg.hasOwnProperty('workerId')) {
+                    workerId = cfg['workerId'];
+                } else if (cfg.hasOwnProperty('name')) {
+                    workerId = cfg['name'];
+                } else {
+                    // prompt for name
+                    var d = new Date().toString().replace(/\S+\s(\S+)\s(\d+)\s(\d+)\s(\d+):(\d+):(\d+)\s.*/, '$2$1$3_$4$5$6');
+                    workerId = prompt("Please enter your SONA participant ID number","NoId_" + d);
+                    name_ok = /^[a-z0-9_]+$/i.test(workerId);
+                    while (!name_ok) {
+                        workerId = prompt("User id can only have numbers, letters, underscore:","NoId_" + d);
+                        name_ok = /^[a-z0-9_]+$/i.test(workerId);
+                    }
+                }
+                response_log.push("SubjectID: " + workerId)
+                console.log("Group " + cfg['group'] + ", requesting sessiontoken for " + workerId);
+                ServerHelper.group_session_request(cfg['group'], workerId);
+                preload_state = 'group_wait';
+            } else if (cfg.hasOwnProperty('session')) {
+                sessionToken = cfg['session'];
+                ServerHelper.request_config(sessionToken);
+                preload_state = 'session_wait';
+                console.log("Config requested");
+            } else {
+                terminate("Unable to load configuration");
+            }
+        } else if(preload_state == 'group_wait') {
+            if(ServerHelper.group_session_received) {
+                if(ServerHelper.sessionToken.slice(0,5)=='Error') {
+                    console.log(ServerHelper.sessionToken);
+                    terminate("Unable to establish session");
+                    return;
+                }
+                cfg['sessionToken']=ServerHelper.sessionToken;
+                console.log("Got session: "+cfg['sessionToken'])
+                sessionToken=cfg['sessionToken'];
+                ServerHelper.request_config(cfg['sessionToken']);
+                preload_state='session_wait';
+            }
+        } else if (preload_state == 'session_wait') {
+            if (ServerHelper.config_received == true) {
+                parse_config();
+                console.log("cfg parsed "+Object.keys(cfg).length.toString());
+                cfg_adjust();
+                ServerHelper.request_status();
+                preload_state = 'log_config';
+            }
+        } else if(preload_state=='log_config') {
+            if (config_parsed) { // don't continue until ready
+                // put config into the response log to start
+                response_log.push("Experiment app: " + _version);
+                response_log.push("Source URL: " + document.URL);
+                response_log.push("Run on " + new Date());
+                response_log.push("");
+                for (key in cfg) {
+                    response_log.push(key + ": " + cfg[key]);
+                }
+                response_log.push("##########");
+                preload_state = 'status_wait';
+                console.log("Config received, status requested for "+ServerHelper.sessionToken);
+            }
+        } else if (preload_state == 'status_wait') {
+            if (ServerHelper.status_received == true) {
+                // set starting variables
+                current_length = 4;
+                trial_number = 0; // last trial completed before this session
+                stats.reset();
+                initialize_screen();
+                session_start = window.performance.now();
+                stats.done_break(); // reset break counters
+                log_event('start', []);
+                parse_status();  // this will override defaults
+                preload_state='loaded';
+                console.log("Status received, starting");
+                requestId = window.requestAnimationFrame(draw);
+                return;
+            }
+        } else if(preload_state == 'loaded' ) {
+            console.log("Draw() should be running...")
+        }
+        requestId = window.requestAnimationFrame(preload_draw);
+    }
+
+    function main() {
+        var url=document.URL;
+        var params=ServerHelper.empirical_start(url); // function in server.js to set up everything
+
+        if (ServerHelper.fatal_error) {
+            terminate(ServerHelper.error);
+            return;
+        }
+
+        if (ServerHelper.demo_mode) {
+            console.log("Run demo...");
+            demo_mode=true;
+            cfg['workerId']='demo';
+            // run demo
+            document.getElementById("mainWin").focus();
+            requestId = window.requestAnimationFrame(preload_draw);
+        } else {
+            //sessionToken=params['session'];
+            //console.log("Session token:"+sessionToken);
+            // copy params to cfg for saving in datalog
+            window.onbeforeunload=warn_termination;
+            for (var p in params) cfg[p]=params[p];
+            document.getElementById("mainWin").focus();
+            // Start preload loop to get all the starting info
+            requestId = window.requestAnimationFrame(preload_draw);
+        }
+    }
+    console.log(current_sequence);
+    console.log("Red Seq: " + red_seq);
+    console.log("Blue Seq: " + blue_seq);
+    console.log("Shuffle: " + shuffle_list);
+    window.addEventListener("keydown",keypress,false);
+    canvas.addEventListener("click",mouseClick,false);
+
+</script>
+
+</body>
+</html>

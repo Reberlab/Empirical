@@ -104,7 +104,12 @@ var cue = function() {
         this.cue_lane=lane_num;
         this.trial_num=trial;
         this.radius=lane_set[this.cue_lane].cue_size;
-        this.color=lane_set[this.cue_lane].cue_color;
+        if (typeof shuffle_list == 'undefined' || shuffle_list[current_cue]==0){
+            this.color=lane_set[this.cue_lane].cue_color;
+        }
+        else if (shuffle_list[current_cue]==1){
+         this.color='red';
+        }
         this.pos[0]=lane_set[this.cue_lane].start[0];
         this.pos[1]=lane_set[this.cue_lane].start[1];
         this.pos[2]=lane_set[this.cue_lane].start[2];
