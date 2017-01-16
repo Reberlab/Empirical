@@ -75,12 +75,14 @@ var ServerHelper = {
         else if (this.workerId=='prompt' || params.hasOwnProperty('prompt')) {  // can't prompt if demo mode
             console.log("Getting workerID");
             // prompt for name/sona id
-            workerId = prompt(ServerHelper.prompt_string);
-            name_ok = /^[a-z0-9_]+$/i.test(workerId);
+            var typed_name = prompt(ServerHelper.prompt_string);
+            name_ok = /^[a-z0-9_]+$/i.test(typed_name);
             while (!name_ok) {
-                workerId = prompt("User id can only have numbers, letters or underscore:");
-                name_ok = /^[a-z0-9_]+$/i.test(workerId);
-            }response_log.push("SubjectID: " + workerId);
+                typed_name = prompt("User id can only have numbers, letters or underscore:");
+                name_ok = /^[a-z0-9_]+$/i.test(typed_name);
+            }
+            this.workerId=typed_name;
+            response_log.push("SubjectID: " + this.workerId);
         }
         if (params.hasOwnProperty('assignmentId')) { // this is an mturk session
             this.mturk=true;
