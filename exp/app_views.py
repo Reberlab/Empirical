@@ -2,7 +2,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from exp.models import Session, Report, ReportForm, Experiment, Security
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
 
@@ -31,6 +31,9 @@ import time
 # <Empirical:privatedata>  -- marks info that needs to be removed to deidentify data records
 # <Empirical:datalog>      -- data that can eventually be shared
 
+# <Empirical:status>
+# <Empirical:uploaddate>
+# <Empirical:timesince>
 
 # special data event types:
 # 'start' created when config file handed out, contains workerid verbatim
@@ -167,10 +170,6 @@ def start_session(request, groupToken, workerId=''):
     start_xml['Empirical:consent']="<![CDATA[%s]]>" % consent
     start_xml['Empirical:config']="<![CDATA[%s]]>" % config
     start_xml['Empirical:session']=session
-    #debug_string=''
-    #for i in config_list:
-    #    debug_string=debug_string+('%s %s;\n' % (i.sessionToken, i.lastStarted))
-    #start_xml['Empirical:debug']=debug_string
 
     return HttpResponse(xml_string(start_xml))
 
@@ -261,7 +260,14 @@ def return_status(request, sessionToken, workerId=''):
         # but just in case, we'll simply return None if there was no start event
         return HttpResponse('None')
 
-    return HttpResponse(reports[0].dataLog[:256])  # datalog length is limited to returning 256 to avoid abuse
+    # wrap this in XML to include the timestamp and time since
+    status_xml={}
+    status_xml['Empirical:status']=reports[0].dataLog[:256]
+    status_xml['Empirical:uploaddate']=reports[0].uploadDate
+    dt = datetime.now() - reports[0].uploadDate
+    status_xml['Empirical:timesince']="%.4f" % (dt.seconds/3600.0)
+
+    return HttpResponse(xml_string(status_xml))  # datalog length is limited to returning 256 to avoid abuse
 
 
 # report() is thje data upload function

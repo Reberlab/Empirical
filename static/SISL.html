@@ -282,6 +282,11 @@
                     log_event('restart',[0]);
                     initialized=true;
                     stats.reset();
+                    // check here if the next state is an EndSession, then enforce minimum delay or continue...
+                    if ((session_state_counter+1)<session.length && session[session_state_counter+1][0] == 'EndSession:') {
+                        min_delay=Number(session[session_state_counter+1][1]);
+
+                    }
                     return;
                 }
                 current_cue=block_trial_max;  // update current cue and keep stepping through blocks
@@ -348,6 +353,12 @@
             current_speed = Number(session[session_state_counter][1]);
             next_session_state();
             return;
+        } else if (t == 'EndSession:') {
+            session_state=7;
+            ServerHelper.upload_data('partial',response_log);
+            var status_log=["Trial: "+current_cue.toString(),"Speed: "+current_speed.toString(),"Date: "+new Date().toString()];
+            ServerHelper.upload_data('status',status_log);
+            end_partial_session(Number(t[1])); // first parameter in end session is number of hours minimum until return
         }
     }
 
@@ -553,8 +564,8 @@
                 return;
             }
             // check if key pressed is associated with a lane
-            var closest_distance=layout.height;
-            var closest_index=-1;
+            closest_distance=layout.height;
+            closest_index=-1;
             for(var i=0;i<cue_set.length;i++){
                 if(cue_set[i].active==true && cue_set[i].scored==false &&
                         cue_set[i].cue_lane==key_lane &&
@@ -814,6 +825,28 @@
             ctx.fillText("SSPA: "+stats.sspa.toFixed(2
                     ),layout.width/2,layout.height/2+190);
         }
+    }
+
+    function end_partial_session(min_delay) {
+        window.removeEventListener("keydown", keypress, false);
+        window.onbeforeunload = null;
+        //window.removeEventListener("click",mouseClick, false);
+        ctx.clearRect(0,0, layout.width,  layout.height);
+        ctx.font = "24px Arial";
+        ctx.fillStyle='black';
+        ctx.textAlign="center";
+        ctx.fillText("Session Complete!", layout.width/2, (layout.height/2)-100);
+        ctx.fillText("Thank you for participating", layout.width/2, layout.height/2);
+        ctx.fillText("Wait at least "+min_delay.toString()+" hours before next session", layout.width/2, (layout.height/2)+100);
+
+        if (cfg_par_true('ShowStats')) {
+            ctx.fillText("Performance from final block",layout.width/2,layout.height/2+100);
+            ctx.fillText("Sequence % correct: "+stats.seq_pc.toFixed(1),layout.width/2,layout.height/2+130);
+            ctx.fillText("Foil % correct: "+stats.foil_pc.toFixed(1),layout.width/2,layout.height/2+160);
+            ctx.fillText("SSPA: "+stats.sspa.toFixed(2
+                    ),layout.width/2,layout.height/2+190);
+        }
+
     }
 
     // to do:

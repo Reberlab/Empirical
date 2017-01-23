@@ -119,11 +119,20 @@ def upload_images(request):
 
             # uncompress image files and store if they don't exist
             for f in file_list: # note -- no checking on image file type, this will also upload arbitratry files
-                if not os.path.exists(os.path.join(output_dir, f.filename)):
-                    zf.extract(f, output_dir)
-                    unpack_log.append("Extracting image file %s to %s" % (f.filename, output_dir))
+                fn = os.path.basename(f.filename)
+                if fn == '' or fn[0] == '_' or fn[0] == '.' or fn[-1] == '/':
+                    unpack_log.append("Not extracting file %s" % f.filename)
                 else:
-                    unpack_log.append("Not extracting %s, exists" % f.filename)
+                    output_file = os.path.join(output_dir, fn)
+                    if os.path.exists(output_file):
+                        unpack_log.append("Not extracting %s, exists" % f.filename)
+                    else :
+                        # zf.extract(f, output_dir)
+                        unpack_log.append("Extracting image file %s to %s" % (fn, output_dir))
+                        file_contents = zf.read(f)
+                        fp = open(output_file, "wb")
+                        fp.write(file_contents)
+                        fp.close()
 
             return render(request,'upload_report.html', {'log': unpack_log, 'exp': None})
         else:
