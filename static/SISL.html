@@ -283,9 +283,13 @@
                     initialized=true;
                     stats.reset();
                     // check here if the next state is an EndSession, then enforce minimum delay or continue...
-                    if ((session_state_counter+1)<session.length && session[session_state_counter+1][0] == 'EndSession:') {
-                        min_delay=Number(session[session_state_counter+1][1]);
-
+                    console.log(session[session_state_counter]);
+                    console.log(session_state);
+                    console.log(session[session_state_counter+1])
+                    if (session_state_counter>0 && session[session_state_counter-1][0] == 'EndSession:') {
+                        min_delay=Number(session[session_state_counter-1][1]);
+                        console.log("Session delay should be at least "+min_delay+" hours");
+                        console.log("Server reports "+ServerHelper.status_since+" hours since last session");
                     }
                     return;
                 }
@@ -303,6 +307,8 @@
     }
 
     function next_session_state() {
+        if (current_cue >= cfg['cue_pattern'].length) terminate("Configuration error;Missing cue pattern;Please contact Experimenter");
+
         if (session_state==8) {
             // restarting from return
             session_state=2;
@@ -318,6 +324,7 @@
             return;
         }
         var t = session[session_state_counter][0];
+        console.log("Next state "+session_state_counter+" current state "+session_state+" t "+t+" ["+session[session_state_counter]+"]");
         if (t == "Break:") {    // Otherwise, session token type determines next state
             session_state = 1;
             break_image_file=session[session_state_counter][1];
@@ -352,13 +359,16 @@
         } else if (t == "SetSpeed:") {
             current_speed = Number(session[session_state_counter][1]);
             next_session_state();
-            return;
-        } else if (t == 'EndSession:') {
+        } else if (t == "EndSession:") {
+            console.log('Found end session state, hours = '+ Number(session[session_state_counter][1]));
+            cancelAnimationFrame(requestId); // to avoid redraw over final message
             session_state=7;
             ServerHelper.upload_data('partial',response_log);
             var status_log=["Trial: "+current_cue.toString(),"Speed: "+current_speed.toString(),"Date: "+new Date().toString()];
             ServerHelper.upload_data('status',status_log);
-            end_partial_session(Number(t[1])); // first parameter in end session is number of hours minimum until return
+            end_partial_session(Number(session[session_state_counter][1])); // first parameter in end session is number of hours minimum until return
+        } else {
+            console.log("unparsed state "+t)
         }
     }
 
@@ -477,11 +487,11 @@
             ctx.fillText("Welcome back",layout.cue_area/2.0,layout.height/2.0-200);
             ctx.fillText("Press a key to pick up where you left off",layout.cue_area/2.0,layout.height/2.0-150);
         }
-        else { // unknown state
+        else if(session_state!=7) { // unknown state
             ctx.font = "48px Arial";
             ctx.fillStyle='red';
             ctx.textAlign="center";
-            ctx.fillText("Unknown state "+session_state_counter.toString(),layout.width/2.0,layout.height/2.0);
+            ctx.fillText("Unknown state "+session_state.toString()+"/"+session_state_counter.toString(),layout.width/2.0,layout.height/2.0);
         }
         if(session_state!=7) {
             requestId = window.requestAnimationFrame(draw);
@@ -822,12 +832,12 @@
             ctx.fillText("Performance from final block",layout.width/2,layout.height/2+100);
             ctx.fillText("Sequence % correct: "+stats.seq_pc.toFixed(1),layout.width/2,layout.height/2+130);
             ctx.fillText("Foil % correct: "+stats.foil_pc.toFixed(1),layout.width/2,layout.height/2+160);
-            ctx.fillText("SSPA: "+stats.sspa.toFixed(2
-                    ),layout.width/2,layout.height/2+190);
+            ctx.fillText("SSPA: "+stats.sspa.toFixed(2),layout.width/2,layout.height/2+190);
         }
     }
 
     function end_partial_session(min_delay) {
+        console.log("Ending session, partial");
         window.removeEventListener("keydown", keypress, false);
         window.onbeforeunload = null;
         //window.removeEventListener("click",mouseClick, false);
@@ -836,15 +846,14 @@
         ctx.fillStyle='black';
         ctx.textAlign="center";
         ctx.fillText("Session Complete!", layout.width/2, (layout.height/2)-100);
-        ctx.fillText("Thank you for participating", layout.width/2, layout.height/2);
-        ctx.fillText("Wait at least "+min_delay.toString()+" hours before next session", layout.width/2, (layout.height/2)+100);
+        ctx.fillText("Thank you for participating", layout.width/2, layout.height/2-30);
+        ctx.fillText("Wait at least "+min_delay.toString()+" hours before next session", layout.width/2, (layout.height/2));
 
         if (cfg_par_true('ShowStats')) {
             ctx.fillText("Performance from final block",layout.width/2,layout.height/2+100);
             ctx.fillText("Sequence % correct: "+stats.seq_pc.toFixed(1),layout.width/2,layout.height/2+130);
             ctx.fillText("Foil % correct: "+stats.foil_pc.toFixed(1),layout.width/2,layout.height/2+160);
-            ctx.fillText("SSPA: "+stats.sspa.toFixed(2
-                    ),layout.width/2,layout.height/2+190);
+            ctx.fillText("SSPA: "+stats.sspa.toFixed(2),layout.width/2,layout.height/2+190);
         }
 
     }

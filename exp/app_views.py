@@ -237,7 +237,6 @@ def newstart_session(request, groupToken, workerId=''):
     return HttpResponse(xml_string(start_xml))
 
 
-
 # return_status() reports back on the latest status report for that sessionToken, used for continuing/restarting
 def return_status(request, sessionToken, workerId=''):
     try:
@@ -247,27 +246,28 @@ def return_status(request, sessionToken, workerId=''):
     if not reports.exists():
         return HttpResponse('None') # no status reports
 
+    # wrap report in XML to include the timestamp and time since
+    status_xml = {}
+    status_xml['Empirical:status'] = reports[0].dataLog[:256]  # datalog length is limited to returning 256 to avoid abuse
+    status_xml['Empirical:uploaddate'] = reports[0].uploadDate
+    dt = timezone.now() - reports[0].uploadDate
+    status_xml['Empirical:timesince'] = "%.4f" % (dt.seconds / 3600.0)
+    status_response=xml_string(status_xml)
+
     # check to make sure workerId matches, necessary if recycle is set
     if workerId!='':
         starts = Report.objects.filter(sessionToken=sessionToken,eventType='start').order_by('-uploadDate')
         for s in starts:
             if s.dataLog==workerId:
                 if s.uploadDate<reports[0].uploadDate: # workerid matches and status came after start event
-                    return HttpResponse(reports[0].dataLog[:256])
+                    return HttpResponse(status_response)
                 else:
                     return HttpResponse('None') # this is the start event for this session, status was from prior
         # technically this line shouldn't be reached since there should be a start event for workerid
         # but just in case, we'll simply return None if there was no start event
         return HttpResponse('None')
 
-    # wrap this in XML to include the timestamp and time since
-    status_xml={}
-    status_xml['Empirical:status']=reports[0].dataLog[:256]
-    status_xml['Empirical:uploaddate']=reports[0].uploadDate
-    dt = datetime.now() - reports[0].uploadDate
-    status_xml['Empirical:timesince']="%.4f" % (dt.seconds/3600.0)
-
-    return HttpResponse(xml_string(status_xml))  # datalog length is limited to returning 256 to avoid abuse
+    return HttpResponse(status_response)
 
 
 # report() is thje data upload function
@@ -354,136 +354,6 @@ def report(request, sessionToken, workerid=''):
 
     upload_form=ReportForm()
     return render(request, 'test_report.html',{'form':upload_form})
-
-########################
-#
-#
-# # get_session should be first function called to get a sessionToken associated with a group
-# # to do: select from restricted token set if appropriate
-# def get_session(request, groupToken, workerId=''):
-#     start=time.time()
-#     try:
-#         t=TokenGeneration.objects.get(groupToken=groupToken)
-#     except:
-#         return HttpResponse('Error: Invalid group %s' % groupToken)
-#
-#     done=time.time()
-#     debug_string="Found group token, %.2f; " % (done-start)
-#
-#     sessions=t.groupSessions.split()
-#     # check if this workerId has already been assigned a token and re-assign
-#     if workerId!='': # one was provided with the URL
-#         if workerId=='demo':  # this is a call to produce a demo cfg, use first
-#             return HttpResponse(sessions[0])
-#
-#         # check the study to see if this workerId has already done a related experiment and return error if so
-#         study=t.studyName
-#         if study!=None:
-#             if study.participants and study.unique_id:  # if unique_id is set, then check to make sure worker id is not in participants
-#                 prev_ids=study.participants.split(' ')
-#                 if workerId in prev_ids:
-#                     return HttpResponse("Error: duplicate participant %s" % workerId)
-#
-#             if not study.recycle:
-#                 done = time.time()
-#                 debug_string += "Checking %d sessions, %.2f; " % (len(sessions),done - start)
-#                 for s in sessions:
-#                     r=Report.objects.filter(sessionToken=s,eventType='given')
-#                     if r.exists():
-#                         for i in r: # if the token is being recycled there could be several of these events
-#                             if i.dataLog == workerId:
-#                                 return HttpResponse("%s match to %s" % (s,workerId))
-#                 done = time.time()
-#                 debug_string += "Going to check study list, %.2f; " % (done - start)
-#
-#     else:
-#         workerId='NoId_%s' % datetime.now()  # unique workerId string that embeds the date
-#
-#     done=time.time()
-#     debug_string+="worker id: %s, %.2f; " % (workerId,done-start)
-#
-#     # restrict sessions to consider to the numTokens list
-#     if t.numTokens<len(sessions):
-#         sessions=sessions[:t.numTokens]
-#
-#     # used_list accumulates all the used sessions, to be used for recycling if needed
-#     used_list=[]
-#     session_match=None
-#     for s in sessions:
-#         r=Report.objects.filter(sessionToken=s,eventType='start').order_by('-uploadDate')  # somebody already started this session
-#         if not r.exists():
-#             done = time.time()
-#             debug_string+='No start for %s, checking given, %.2f; ' % (s,done-start)
-#             r=Report.objects.filter(sessionToken=s,eventType='given')
-#             if not r.exists():
-#                 done = time.time()
-#                 debug_string+='Match on %s, %.2f ;' % (s,done-start)
-#                 session_match=s # found an unused session to give
-#                 break
-#         done = time.time()
-#         debug_string+='Adding %s to used, %.2f; ' % (s,done-start)
-#         used_list.append([r[0].uploadDate,s])
-#
-#     # recycle a previously used token
-#     if session_match==None:
-#         study=t.studyName
-#         if study!=None and study.recycle:
-#             used_list.sort()  # sort session token by last data event date
-#             try:
-#                 debug_string+='Matching from used %s; ' % used_list[0][1]
-#                 session_match=used_list[0][1] # return oldest
-#             except:
-#                 return HttpResponse('Error: Cannot recycle prior session')
-#         else:
-#             return HttpResponse('Error: No available sessions')
-#
-#     # create the 'given' event for the session to be returned
-#     try:
-#         session=Session.objects.get(sessionToken=session_match)
-#     except:
-#         return HttpResponse('Error: Bad session number')
-#
-#     r = Report(sessionToken=session_match,sessionKey=session,eventType='given',dataLog=workerId) # workerId stored in this event to catch re-use later
-#     r.save()
-#     # add worker_id to the study list
-#     study=t.studyName
-#     if study!=None and study.participants:
-#         study.participants=study.participants+' '+workerId
-#         study.save()
-#     #done = time.time()
-#     #debug_string+="added objects, %.2f" % (done-start)
-#     #debug_string=session_match+' '+debug_string  # for debugging recycling problems 04/29/2016 -- PJR
-#     #return HttpResponse(debug_string)
-#     return HttpResponse(session_match)
-#
-#
-# # start() is the core experiment app communication function that distributes the cfg file text
-# #  in addition, this function logs a 'start' event
-# def start(request, sessionToken, args=''):
-#     try:
-#         s = Session.objects.get(sessionToken=sessionToken)
-#         cfg = s.configFile
-#     except:
-#         return HttpResponse('No such config file associated with token %s' % sessionToken) # should have error template for bad info
-#
-#     # add a line to the Report db indicating that this session was started unless in demo mode
-#     if args!='demo':
-#         r = Report(sessionToken=s.sessionToken,sessionKey=s,eventType='start',dataLog=datetime.now())
-#         r.save()
-#
-#     return HttpResponse(cfg)
-#
-# # get_consent() retrieves the consent JSON stored in the 'token' data object at token_creation
-# def get_consent(request, sessionToken):
-#     try:
-#         reports = Report.objects.filter(sessionToken=sessionToken,eventType='token').order_by('-uploadDate') # returns last status
-#     except:
-#         return HttpResponse('None') # no token event is available, no associated study (sessiontoken given directly)
-#     if not reports.exists():
-#         return HttpResponse('None')
-#     return HttpResponse(reports[0].dataLog) # consent form text is put in the dataLog from the Study during token creation
-#
-
 
 
 

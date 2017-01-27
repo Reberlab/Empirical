@@ -29,13 +29,7 @@ function preload_draw() {
                 console.log(ServerHelper.consent_string);
                 try {
                     consent_object = JSON.parse(ServerHelper.consent_string);
-                    //for (var key in consent_object) {
-                    //   console.log(key, consent_object[key]);
-                    //}
                     ServerHelper.consent_form = consent_object['consent_form'];
-                    //for (var key in consent_form) {
-                    //    console.log(key, consent_form[key]);
-                    //}
                 } catch (e) {
                     console.log("error");
                     console.log(e);
@@ -75,8 +69,10 @@ function preload_draw() {
         if (ServerHelper.status_received) {
             if (debug_preload) console.log("Status received");
             // parse status
-            if(ServerHelper.status!='') {
+            if(ServerHelper.status!='' && ServerHelper.status!='None') {
                 console.log(ServerHelper.status);
+                console.log(ServerHelper.status_time);
+                console.log(ServerHelper.status_since);
                 t=ServerHelper.status.split(/\s+/);
                 for(var i=0;i<t.length;i++) {
                     if(t[i]=='Trial:' && (i+1)< t.length) {

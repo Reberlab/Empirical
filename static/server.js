@@ -26,18 +26,12 @@ var ServerHelper = {
     error: "",
     response_log: "",
     status: "",
+    status_time: "",
+    status_since: 0.0,
     demo_mode: false,
     mturk: false,
     mturk_submit: '',
     mturk_info: '',
-    //group_session_num: "",
-    //config_error: false,
-    //group_session_requested: false,
-    //group_session_received: false,
-    //config_requested: false,
-    //config_received: false,
-    //consent_requested: false,
-    //consent_received: false,
     start_requested: false,
     start_received: false,
     data_logged: false,
@@ -54,7 +48,6 @@ var ServerHelper = {
         else host=u.hostname+':'+u.port
         this.server_url = u.protocol + '//' + host +'/exp/';
         this.image_url = u.protocol + '//' + host + '/images/';
-        console.log(this.server_url);
         if (q.length<2) return(params);
         q = q[1].split('&');
         for(var i=0;i < q.length;i++) {
@@ -70,10 +63,11 @@ var ServerHelper = {
             this.fatal_error=true;
         }
         if (params.hasOwnProperty('workerId')) this.workerId = params['workerId'];
+        else if (params.hasOwnProperty('workerid')) this.workerId = params['workerid'];
+        else if (params.hasOwnProperty('name')) this.workerId = params['name'];
         else this.workerId='';
         if (this.workerId=='demo' || params.hasOwnProperty('demo')) this.demo_mode=true;
         else if (this.workerId=='prompt' || params.hasOwnProperty('prompt')) {  // can't prompt if demo mode
-            console.log("Getting workerID");
             // prompt for name/sona id
             var typed_name = prompt(ServerHelper.prompt_string);
             name_ok = /^[a-z0-9_]+$/i.test(typed_name);
@@ -95,10 +89,8 @@ var ServerHelper = {
                 if (params.hasOwnProperty('turkSubmitTo')) mturk_info+="turkSubmitTo=" + params['turkSubmitTo'] + "\n";
                 this.mturk_submit=params['turkSubmitTo'];
                 this.mturk_info=mturk_info;
-                console.log(mturk_info);
             }
         }
-        console.log("Start: "+this.groupToken+' '+this.workerId);
         return(params);
     },
 
@@ -107,19 +99,13 @@ var ServerHelper = {
             if (server_debug) console.log("Multiple calls to start_request");
             return;
         }
-        //console.log(this.groupToken, this.workerId);
-        //this.groupToken = groupToken;
-        //this.workerId = workerId;
         if (this.demo_mode) {
             start_request_url = this.server_url + 'start/' + this.groupToken + '/demo';
         }
         else if (this.workerId=='') {
             var start_request_url = this.server_url + 'start/' + this.groupToken;
-            console.log('no workerId');
-            console.log(start_request_url);
         } else {
             start_request_url = this.server_url + 'start/' + this.groupToken + '/' + this.workerId;
-            console.log(start_request_url);
         }
         this.xmlhttp.addEventListener('load', this.start_receive);
         this.xmlhttp.open("GET", start_request_url, true);
@@ -133,21 +119,20 @@ var ServerHelper = {
             return;
         }
         if (ServerHelper.xmlhttp.readyState == 4) {
-            //console.log(['whyyyy']);
             ServerHelper.start_received = true;
             if (ServerHelper.xmlhttp.status == 200) {
                 var response = ServerHelper.xmlhttp.responseText;
                 parser = new DOMParser();
                 xmlDoc = parser.parseFromString(response,"text/xml");
-                console.log("text: "+response.slice(0,200));
+                //console.log("text: "+response.slice(0,200));
                 // the response is an XML object with the session token, workerid,  config file and consent form
                 ServerHelper.sessionToken = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","session")[0].childNodes[0].nodeValue;
-                console.log("session "+ ServerHelper.sessionToken);
+                //console.log("session "+ ServerHelper.sessionToken);
                 ServerHelper.workerId = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","workerid")[0].childNodes[0].nodeValue;
                 ServerHelper.config_file = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","config")[0].childNodes[0].nodeValue;
                 ServerHelper.consent_string = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","consent")[0].childNodes[0].nodeValue;
-                console.log("session "+ ServerHelper.sessionToken);
-                console.log("worker "+ServerHelper.workerId);
+                //console.log("session "+ ServerHelper.sessionToken);
+                //console.log("worker "+ServerHelper.workerId);
                 // console.log("config "+ServerHelper.config_file.slice(0,200));
                 // console.log("consent "+ServerHelper.consent_form.slice(0,200));
                 // what happens if the XML isn't parsed properly?
@@ -158,99 +143,6 @@ var ServerHelper = {
         }
     },
 
-/*
-    group_session_request: function (groupToken, workerId) {
-        if (this.group_session_requested) {
-            if (server_debug) console.log("Multiple calls to group config request");
-            return;
-        }
-        this.groupToken = groupToken;
-        this.workerId = workerId;
-        var group_session_gen_url = this.server_url + 'group/' + this.groupToken + '/' + this.workerId;
-        this.xmlhttp.addEventListener('load', this.group_session_get);
-        this.xmlhttp.open("GET", group_session_gen_url, true);
-        this.xmlhttp.send();
-        this.group_session_requested = true;
-    },
-
-    group_session_get: function () {
-        if (this.group_session_received || this.config_received) {
-            if (server_debug) console.log("Multiple calls to group config request");
-            return;
-        }
-        if (ServerHelper.xmlhttp.readyState == 4) {
-            ServerHelper.group_session_received = true;
-            if (ServerHelper.xmlhttp.status == 200) {
-                var response = ServerHelper.xmlhttp.responseText;
-                var t = response.split(" ");
-                if (t.length > 1 && server_debug) console.log("Multi-word group response " + response);
-                ServerHelper.sessionToken = t[0];
-                this.group_session_received = true;
-            } else {
-                ServerHelper.error = ServerHelper.xmlhttp.statusText;
-            }
-        }
-    },
-
-    request_config: function (sessionToken) {                          // retrieve config file from server
-        if (this.config_requested) {
-            if (server_debug) console.log("Multiple calls to config request");
-            return;
-        }
-        if (server_debug) console.log(sessionToken);
-        this.sessionToken = sessionToken; // .split(" ")[0]; -- should already be split
-        var url = this.server_url + 'start/' + this.sessionToken;
-        this.xmlhttp.addEventListener('load', this.get_config);
-        this.xmlhttp.open("GET", url, true);
-        this.xmlhttp.send();
-        this.config_requested = true;
-    },
-
-    get_config: function () {
-        if (ServerHelper.config_received) {
-            if (server_debug) console.log("Multiple calls to config received");
-            return;
-        }
-        if (ServerHelper.xmlhttp.readyState == 4) {
-            ServerHelper.config_received = true;
-            ServerHelper.xmlhttp.removeEventListener('load', ServerHelper.get_config);
-            if (ServerHelper.xmlhttp.status == 200) {
-                ServerHelper.config_file = ServerHelper.xmlhttp.responseText;
-            } else {
-                ServerHelper.error = ServerHelper.xmlhttp.statusText;
-            }
-        }
-    },
-
-    request_consent_form: function (sessionToken) {
-        if (this.consent_requested) {
-            if (server_debug) console.log("Multiple calls to consent request");
-            return;
-        }
-        this.sessionToken = sessionToken;
-        var url = this.server_url + 'consent/' + this.sessionToken;
-        this.xmlhttp.addEventListener('load', this.get_consent_form);
-        this.xmlhttp.open("GET", url, true);
-        this.xmlhttp.send();
-        this.consent_requested = true;
-    },
-
-    get_consent_form: function () {
-        if (ServerHelper.consent_received) {
-            if (server_debug) console.log("Multiple calls to consent received");
-            return;
-        }
-        if (ServerHelper.xmlhttp.readyState == 4) {
-            ServerHelper.consent_received = true;
-            ServerHelper.xmlhttp.removeEventListener('load', ServerHelper.get_consent_form);
-            if (ServerHelper.xmlhttp.status == 200) {
-                ServerHelper.status = ServerHelper.xmlhttp.responseText;
-            } else {
-                ServerHelper.error = ServerHelper.xmlhttp.statusText;
-            }
-        }
-    },
-*/
 
     request_status: function () {
         var url = this.server_url + 'status/' + this.sessionToken + '/' + this.workerId;
@@ -264,7 +156,20 @@ var ServerHelper = {
         if (ServerHelper.xmlhttp.readyState == 4) {
             ServerHelper.status_received = true;
             if (ServerHelper.xmlhttp.status == 200) {
-                ServerHelper.status = ServerHelper.xmlhttp.responseText;
+                //ServerHelper.status = ServerHelper.xmlhttp.responseText;
+                if (ServerHelper.xmlhttp.responseText == 'None') {
+                    ServerHelper.status='None';
+                    ServerHelper.status_time='None';
+                    ServerHelper.status_since='None';
+                } else {
+                    var response = ServerHelper.xmlhttp.responseText;
+                    parser = new DOMParser();
+                    xmlDoc = parser.parseFromString(response,"text/xml");
+                    //console.log("text: "+response.slice(0,200));
+                    ServerHelper.status=xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","status")[0].childNodes[0].nodeValue;
+                    ServerHelper.status_time=xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","uploaddate")[0].childNodes[0].nodeValue;
+                    ServerHelper.status_since=Number(xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","timesince")[0].childNodes[0].nodeValue);
+                }
             } else {
                 ServerHelper.error = ServerHelper.xmlhttp.statusText;
             }
@@ -344,6 +249,9 @@ var ServerHelper = {
         if (server_debug) console.log("data sent " + ServerHelper.event_type);
         // log successes
         ServerHelper.upload_connection_log+='data_upload_sent('+ServerHelper.response_log.length.toString()+'_bytes);';
+
+        // report on upload errors here...
+
         // if there is a queue, start the next upload
         if (ServerHelper.upload_queue != []) {
             ServerHelper.upload_from_queue();
