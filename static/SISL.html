@@ -275,6 +275,7 @@
             if (t == "Trials:") {
                 block_trial_max = current_cue+Number(session[session_state_counter][1]);
                 if(trial_number<block_trial_max) { // this is the current block
+                    console.log(trial_number,block_trial_max);
                     current_cue=trial_number;
                     console.log("Restarting at cue "+current_cue);
                     session_state=8;
@@ -284,14 +285,25 @@
                     stats.reset();
                     // check here if the next state is an EndSession, then enforce minimum delay or continue...
                     console.log(session[session_state_counter]);
-                    console.log(session_state);
+                    console.log(session_state,session_state_counter);
                     console.log(session[session_state_counter+1])
                     if (session_state_counter>0 && session[session_state_counter-1][0] == 'EndSession:') {
                         min_delay=Number(session[session_state_counter-1][1]);
                         console.log("Session delay should be at least "+min_delay+" hours");
                         console.log("Server reports "+ServerHelper.status_since+" hours since last session");
+                        if (ServerHelper.status_since < min_delay) {
+                            terminate("The next session needs to be at least "+min_delay+" hours after the previous;It's only been "+ServerHelper.status_since.toFixed(2)+" hours so far");
+                            return false;
+                        } else {
+                            console.log("Delay requirement met");
+                            console.log(min_delay, typeof min_delay);
+                            console.log(ServerHelper.status_since, typeof ServerHelper.status_since);
+                            console.log(min_delay < ServerHelper.status_since);
+                        }
                     }
-                    return;
+                    return true;
+                } else {
+                    console.log("Counting trials ",session_state_counter,trial_number,block_trial_max);
                 }
                 current_cue=block_trial_max;  // update current cue and keep stepping through blocks
             }
@@ -300,10 +312,13 @@
             } else if (t == "Feedback:") { // needs testing
                 cfg['feedback'] = session[session_state_counter][1];
             }
+            else {
+                console.log("Restart skipping",session_state_counter," [",session[session_state_counter],"] ",block_trial_max);
+            }
             session_state_counter++;
         }
-        // experiment was already completed
-        session_state=8;
+        session_state=7;
+        return false;
     }
 
     function next_session_state() {
@@ -348,7 +363,6 @@
         } else if (t == "Feedback:") { // needs testing
             cfg['feedback']=session[session_state_counter][1];
             next_session_state();
-            return;
         } else if (t == "Recognition:") {
             session_state = 4;
             Recognition.trial_num = 0;
@@ -939,12 +953,13 @@
                 current_cue=cfg['status-trials'];
                 if (cfg.hasOwnProperty('status-speed')) current_speed=cfg['status-speed'];
                 // recalculate session_state counter and current_cue
-                restart_session_state(cfg['status-trials']);
-                if(session_state_counter>=session.length) {
-                    // alert to already completed
-                    terminate("You have already completed this experiment;Contact the Experimenter if you think this message is in error");
+                if (!restart_session_state(cfg['status-trials'])) {
+                    if(session_state_counter>=session.length)                      // alert to already completed
+                            terminate("You have already completed this experiment;Contact the Experimenter if you think this message is in error");
+                    // some other reason the restart didn't go, probably delay requirement not met
                     return;
                 }
+                // if restart returned true, start the draw loop
                 requestId = window.requestAnimationFrame(draw);
             } else if(!is_empty(ServerHelper.consent_form)) show_consent();
             else requestId = window.requestAnimationFrame(draw);
