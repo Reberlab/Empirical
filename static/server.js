@@ -39,11 +39,13 @@ var ServerHelper = {
     upload_in_progress: false,
     upload_queue: [],
     upload_connection_log: '',
+    upload_timeout_counter: 0,
 
     empirical_start: function(url) {
         var params={};
         var q=url.split('?');
-        u = new URL(url);
+        //u = new URL(url);
+        var u=window.location;
         if (u.port=='' || u.port==80) host=u.hostname;
         else host=u.hostname+':'+u.port
         this.server_url = u.protocol + '//' + host +'/exp/';
@@ -101,8 +103,7 @@ var ServerHelper = {
         }
         if (this.demo_mode) {
             start_request_url = this.server_url + 'start/' + this.groupToken + '/demo';
-        }
-        else if (this.workerId=='') {
+        } else if (this.workerId=='') {
             var start_request_url = this.server_url + 'start/' + this.groupToken;
         } else {
             start_request_url = this.server_url + 'start/' + this.groupToken + '/' + this.workerId;
@@ -124,17 +125,11 @@ var ServerHelper = {
                 var response = ServerHelper.xmlhttp.responseText;
                 parser = new DOMParser();
                 xmlDoc = parser.parseFromString(response,"text/xml");
-                //console.log("text: "+response.slice(0,200));
                 // the response is an XML object with the session token, workerid,  config file and consent form
                 ServerHelper.sessionToken = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","session")[0].childNodes[0].nodeValue;
-                //console.log("session "+ ServerHelper.sessionToken);
                 ServerHelper.workerId = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","workerid")[0].childNodes[0].nodeValue;
                 ServerHelper.config_file = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","config")[0].childNodes[0].nodeValue;
                 ServerHelper.consent_string = xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","consent")[0].childNodes[0].nodeValue;
-                //console.log("session "+ ServerHelper.sessionToken);
-                //console.log("worker "+ServerHelper.workerId);
-                // console.log("config "+ServerHelper.config_file.slice(0,200));
-                // console.log("consent "+ServerHelper.consent_form.slice(0,200));
                 // what happens if the XML isn't parsed properly?
             } else {
                 ServerHelper.fatal_error=true;
@@ -165,7 +160,6 @@ var ServerHelper = {
                     var response = ServerHelper.xmlhttp.responseText;
                     parser = new DOMParser();
                     xmlDoc = parser.parseFromString(response,"text/xml");
-                    //console.log("text: "+response.slice(0,200));
                     ServerHelper.status=xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","status")[0].childNodes[0].nodeValue;
                     ServerHelper.status_time=xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","uploaddate")[0].childNodes[0].nodeValue;
                     ServerHelper.status_since=Number(xmlDoc.getElementsByTagNameNS("https://www.reberlab.org/","timesince")[0].childNodes[0].nodeValue);
@@ -195,6 +189,8 @@ var ServerHelper = {
         this.xmlhttp = new XMLHttpRequest();
         this.xmlhttp.addEventListener('load', this.upload_ready);
         this.xmlhttp.open("GET", url, true);
+        this.xmlhttp.timeout = 10000; // 10s timeout
+        this.xmlhttp.ontimeout = this.upload_timeout;
         this.xmlhttp.send();
         this.upload_in_progress = true;
     },
@@ -212,7 +208,26 @@ var ServerHelper = {
         var url = this.server_url + 'report/' + this.sessionToken;
         this.xmlhttp.addEventListener('load', this.upload_ready);
         this.xmlhttp.open("GET", url, true);
+        this.xmlhttp.timeout = 10000; // 10s timeout
+        this.xmlhttp.ontimeout = this.upload_timeout;
         this.xmlhttp.send();
+    },
+
+    upload_timeout: function() {
+        console.log("Upload timed out");
+        upload_timeout_counter++; // if > max allowable and upload was a 'complete' type, dump data log to screen and request user email
+        // if there is a queue, then go to the next item
+        if(this.upload_queue.length>0) {
+            this.upload_from_queue();
+        } else {  // if not, keep trying to upload the current log
+            this.xmlhttp = new XMLHttpRequest();
+            var url = this.server_url + 'report/' + this.sessionToken;
+            this.xmlhttp.addEventListener('load', this.upload_ready);
+            this.xmlhttp.open("GET", url, true);
+            this.xmlhttp.timeout = 10000; // 10s timeout
+            this.xmlhttp.ontimeout = this.upload_timeout;
+            this.xmlhttp.send();
+        }
     },
 
     upload_ready: function () { // or just xmlhttp post?

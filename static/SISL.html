@@ -339,7 +339,7 @@
             return;
         }
         var t = session[session_state_counter][0];
-        console.log("Next state "+session_state_counter+" current state "+session_state+" t "+t+" ["+session[session_state_counter]+"]");
+        //console.log("Next state "+session_state_counter+" current state "+session_state+" t "+t+" ["+session[session_state_counter]+"]");
         if (t == "Break:") {    // Otherwise, session token type determines next state
             session_state = 1;
             break_image_file=session[session_state_counter][1];
@@ -541,7 +541,7 @@
                 demo_state=1;
                 return;
             }
-            var key_lane=-1;
+            key_lane=-1;
             for(i=0;i<cfg['key_list'].length;i++) {
                 if(k==cfg['key_list'][i]){
                     key_lane=i;
@@ -569,10 +569,11 @@
                 end_session();
                 return;
             }
-            next_session_state();
+            for(i=0;i<cfg['key_list'].length && cfg['key_list'][i]!=k;i++); // don't continue on key from response set
+            if(i==cfg['key_list'].length) next_session_state();
         }
         else { // Main loop: cues are moving, process response
-            if(e.keyCode==27) { // ESC to terminate block
+            if(e.keyCode==220) { // hidden key to terminate block unlikely to be hit by accident
                 end_block();
                 return;
             }
@@ -937,7 +938,6 @@
 
     function cfg_par_true(p) {
         if (!cfg.hasOwnProperty(p)) return false;
-        console.log(p+'; '+cfg[p]);
         if (cfg[p]==1 || cfg[p]=='1' || cfg[p]=='On' || cfg[p]=='True' || cfg[p]=='true' || cfg[p]=='yes' || cfg[p]=='Yes')
                 return true;
         return false;
