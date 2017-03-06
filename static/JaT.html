@@ -20,7 +20,6 @@
 </div>
 
 <script src="server.js"></script>
-<script src="trivia.js"></script>
 
 <script>
 
@@ -35,6 +34,8 @@
     var state = 'init';
     var preload_state = 'init';
     var demo_mode = false;
+    var image_dir = ' ';
+//    var size_correct = 0;
 
     var cfg = {};
     var response_log = [];
@@ -90,7 +91,7 @@
             ctx.textAlign='end';
             score="Points: "+point_total;
             ctx.fillText(score, this.width-50, 50);
-            ctx.fillText(state,this.width-50,75); // debugging state info
+//            ctx.fillText(state,this.width-50,75); // debugging state info
         }
     };
 
@@ -101,7 +102,10 @@
         trialsComplete: 0,
         trialsCorrect: 0,
         make_test: function(test_array) { //takes images from the image_pairs array and puts them into an array for testing
+		if (test_array.length == cfg['study_array'].length) {
             this.testArray = test_array;
+            this.studyArray = cfg['study_array'];
+	    } else console.log('error');
             for (var i = 0; i < this.testArray.length; i++) {
                 if (this.testArray[i] == 1) {
                     console.log('test images 0', image_pairs[i][0]);
@@ -123,7 +127,9 @@
         },
         countCorrect: function(k, trialNum) {
             this.trialsComplete++;
-            if((k=='1' && this.testArray[trialNum]==1) || (k=='2' && this.testArray[trialNum]==2)) {
+         // if((k=='1' && this.testArray[trialNum]==1) || (k=='2' && this.testArray[trialNum]==2)) {
+         //     this.trialsCorrect++;
+         	if ((k=='1' && (this.testArray[trialNum]==this.studyArray[trialNum])) || (k=='2' && (this.testArray[trialNum]!==this.studyArray[trialNum])))  {
                 this.trialsCorrect++;
             }
         }
@@ -228,13 +234,16 @@
             if (outcome==2) {
                 ctx.fillStyle = 'green';
                 var result_msg="You won "+cfg['win_point_value'].toString()+" bonus points!";
+                console.log("Won points")
             }
             else if (outcome==1) result_msg="Result was 5, a draw";
             else if (outcome==0) {
                 ctx.fillStyle = 'red';
-               result_msg="You lost "+cfg['lose_point_value'].toString()+" points."
+                result_msg="You lost "+cfg['lose_point_value'].toString()+" points.";
+            	console.log("Lost points");
             }
             ctx.fillText(result_msg, 300, 500);
+           
         }
     }
 
@@ -270,8 +279,16 @@
             // instructions
             message(['Welcome to the Judgments across Tasks Experiment',
                 'Thanks for participating',
+                '',
                 'Your participation is entirely voluntary',
-                'and you are free to stop at any time',
+                'and you are free to stop at any time.',
+                '',
+                'You will be responding to different tasks',
+                'that will show up on-screen.',
+                '',
+                'You can earn or lose points with each task.',
+                'Try to score as many points as possible.',
+                '',
                 'Press Enter to begin']);
             response='';
             last_trial_time = window.performance.now();
@@ -291,11 +308,22 @@
                 //ctx.font = "24px Arial";
                 //ctx.fillStyle = 'black';
                 //ctx.textAlign = "center";
-
-                var response_y = ((layout.height/2.0 - images[image_name].height/2.0)+100)+images[image_name].height;
+//				size_correct = 0;
+                var response_y = ((layout.height/2.0 - images[image_name].height/2.0)+85)+images[image_name].height;
                 // removed the smaller/larger feedback for now
-                if (response=='1') ctx.fillText("+"+cfg['study_points'].toString()+" points", layout.width / 2, response_y);
-                else if (response=='2') ctx.fillText("+"+cfg['study_points'].toString()+" points", layout.width / 2, response_y);
+ //               var size_choice = parseInt(cfg['size_choice_array'][trial_number]);
+ //               console.log("Correct size choice: "+size_choice);
+                if ((response == '1') || (response == '2')) {   	
+                	if (parseInt(response) == parseInt(cfg['size_choice_array'][trial_number])) {
+                		ctx.fillText("Correct +"+cfg['study_points'].toString()+" points", layout.width / 2, response_y);
+                	//	size_correct = 1;
+               		} else {
+               			ctx.fillText("Incorrect -"+cfg['study_points'].toString()+" points", layout.width / 2, response_y);
+               		//	size_correct = 0;
+                	}
+                }
+//                if (response=='1') ctx.fillText("+"+cfg['study_points'].toString()+" points", layout.width / 2, response_y);
+//                else if (response=='2') ctx.fillText("+"+cfg['study_points'].toString()+" points", layout.width / 2, response_y);
             }
 
             // study trial stays on screen for study_duration no matter what
@@ -327,8 +355,10 @@
                 outcome = cfg['gamble_array'][trial_number];
                 if (outcome==2) point_total += cfg['win_point_value'];
                 else if (outcome==1) point_total += cfg['draw_point_value'];
-                else if (outcome==0) point_total -= cfg['win_point_value'];
+                else if (outcome==0) point_total -= cfg['lose_point_value'];
                 state='gamble_result'
+                log_event('post_gamble', [trial_number,"",cfg['gamble_array'][trial_number], response, rt(),point_total]);
+
             } else {
                 elap = curr_time - gamble_spin_time;
                 if (elap > gamble_animation_times[gamble_spin_counter]) {
@@ -366,7 +396,7 @@
                     // next trial
                     trial_number++;
                     if (trial_number<cfg['study_trials']) {
-                        log_event('study',[trial_number,image_pairs[trial_number][cfg['study_array'][trial_number] - 1],'',iti()]);
+                        log_event('study',[trial_number,"",image_pairs[trial_number][cfg['study_array'][trial_number] - 1],cfg['size_choice_array'][trial_number],iti(),point_total]);
                         state='study';
                     } else {
                         state='delay';
@@ -378,11 +408,20 @@
             }
 
         } else if (state=='delay') {
-            message(['Lets test your memory for the items you saw earlier',
-            'In this part you will see some old items',
-            'And some new ones.',
-            'For each one press 1 if you think you saw it',
-            'And 2 if you think it is new',
+            message(['Let\'s test your memory for the items you saw earlier.',
+            'In this part you will see some old images',
+            'and some new ones.',
+            '',
+            'For each item, press 1 if you think you saw it,',
+            'And 2 if you think it is new.',
+            '',
+            'Look carefully; the new items will be similar',
+            'to items that you saw earlier.',
+            '',
+            'You will not earn points on this test', 
+            'but we will tell you how many you got right', 
+            'at the end of the test.',
+            '',
             'Press Enter to begin']);
             test_number=0;
         } else if (state=='test') {
@@ -450,7 +489,7 @@
             // press Enter to continue, change state
             if (e.keyCode==13) {
                 state='study';
-                log_event('study',[trial_number,image_pairs[trial_number][cfg['study_array'][trial_number]-1],'',iti()]);
+                log_event('study',[trial_number,"",image_pairs[trial_number][cfg['study_array'][trial_number]-1],cfg['size_choice_array'][trial_number],iti(),point_total]);
                 last_response_time = window.performance.now();
                 last_trial_time = window.performance.now();
             }
@@ -460,9 +499,11 @@
             // numbers
             if (k=='1' || k=='2') {
                 response=k;
-                last_response_time=window.performance.now();
-                log_event('rate',[trial_number,image_pairs[trial_number][cfg['study_array'][trial_number]-1], response, rt()]);
-                point_total += cfg['study_points'];
+                last_response_time=window.performance.now();           
+                if (parseInt(response) == parseInt(cfg['size_choice_array'][trial_number])) point_total += cfg['study_points'];
+                else point_total -= cfg['study_points'];
+                // point_total += cfg['study_points'];
+                log_event('rate',[trial_number,"",image_pairs[trial_number][cfg['study_array'][trial_number]-1], response, rt(),point_total]);
                 state='study_response';
             } else if (e.keyCode==27) { // ESC pressed, jump to test for testing
                 state='delay';
@@ -472,7 +513,7 @@
             if(k=='1' || k=='2') {
                 response=k;
                 last_response_time = window.performance.now();
-                log_event('gamble', [trial_number,"",cfg['gamble_array'][trial_number], response, rt()]);
+                log_event('gamble', [trial_number,"",cfg['gamble_array'][trial_number], response, rt(),point_total]);
 
                 // calculate win/lose to set starting value number...
                 fix_gamble_outcome(response, cfg['gamble_array'][trial_number]);
@@ -480,6 +521,7 @@
                 // start animation
                 state='gamble_animate';
                 gamble_spin_time = last_response_time;
+            
             }
         } else if (state == 'flanker_show') {
             //last_response_time = window.performance.now();
@@ -489,7 +531,7 @@
                 if((response=='1' && middle=='<') || (response=='2' && middle=='>')) point_total += cfg['flanker_points'];
                 else point_total -= cfg['flanker_points'];
                 last_response_time = window.performance.now();
-                log_event('flanker', [trial_number,flanker_trials[flanker_counter], flanker_counter, response, rt()]);
+                log_event('flanker', [trial_number,flanker_trials[flanker_counter], flanker_counter, response, rt(),point_total]);
                 state = 'flanker_iti';
             }
         } else if (state=='delay') {
@@ -503,8 +545,8 @@
             // 1 or 2
             if (k=='1' || k=='2') {
                 last_response_time = window.performance.now();
-                log_event('test', [test_number, memory_test.get_stim(test_number), k, rt()]);
                 memory_test.countCorrect(k,test_number);
+                log_event('test', [test_number, memory_test.studyArray[test_number], memory_test.testArray[test_number], memory_test.get_stim(test_number), k, rt(), memory_test.trialsCorrect.toString()]);
                 //console.log([test_number, memory_test.get_stim(test_number)]);
                 state='test_iti';
             } else if (e.keyCode==27) { // ESC pressed, jump to test for testing
@@ -557,6 +599,7 @@
         var lines = config.split('\n');
         var in_image_list = false;
         var num_stim = 0;
+     //   var image_dir = ' ';
 
         for (var i=0;i<lines.length;i++) {
             // t[0] is the first keyword on the line, t[1:] are the arguments
@@ -572,12 +615,21 @@
                 }
                 else if (t[0] == 'NumberStimuli') { // number of pairs
                     num_stim = parseInt(t[1]);
+                    console.log(t)
                     console.log("Loading "+num_stim+" image pairs");
                     cfg[t[0]] = num_stim;
                     in_image_list = true;
+                }
+                else if (t[0] == 'ImageDirectory') { // number of pairs
+                    image_dir = t[1];
+                    console.log(t)
+                    console.log("Image Directory "+image_dir);
                 } else if (t[0] == 'Study') { //the line that starts with 'Study' contains the keys for which images should be used for study
                     cfg['study_array'] = t.slice(1, t.length);
                     //console.log('study array', cfg['study_array']);
+                } else if (t[0] == 'SmallLarge') { //the line that starts with 'Study' contains the keys for which images should be used for study
+                    cfg['size_choice_array'] = t.slice(1, t.length);
+                    console.log('size_choice array', cfg['size_choice_array']);
                 } else if (t[0] == 'TrialTimes') {
                     cfg['study_time'] = Number(t[1]); //the number of points should follow the word "Points" in the config file
                     cfg['study_iti'] = Number(t[2]);
@@ -632,12 +684,12 @@
         console.log("Loading images...");
         for(var i=0; i<image_pairs.length; i++){
             im = new Image();
-            im.src = ServerHelper.image_url+"MG40/"+image_pairs[i][0]; //line where images array is populated
+            im.src = ServerHelper.image_url+image_dir+"/"+image_pairs[i][0]; //line where images array is populated
             images[image_pairs[i][0]]=im;
             console.log('preload images', images[image_pairs[i][0]]);
             //console.log("first", im.src);
             im = new Image();
-            im.src = ServerHelper.image_url+"MG40/"+image_pairs[i][1];
+            im.src = ServerHelper.image_url+image_dir+"/"+image_pairs[i][1];
             images[image_pairs[i][1]]=im;
         }
         //console.log('Loaded: array of image names', images);
