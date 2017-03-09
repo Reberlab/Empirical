@@ -52,7 +52,7 @@ var lane = function(start,target,delta,color,size,pad_color,pad_size) {
         d=distance3(pos,[this.target[0],this.target[1],this.target[2]]);
         return d/this.total_distance;
     }
-}
+};
 
 // cue holds all the information about the moving cues on the screen, many of this variables are set from the lane it is in
 // update with cue based velocity instead of percent of way to finish
@@ -73,7 +73,7 @@ var cue = function() {
         ctx.closePath();
         ctx.fillStyle = this.color;
         ctx.fill();
-    }
+    };
     this.move=function() {  //new_pos) {
         var curr = window.performance.now();
         var elap = curr - this.last_move; // time since last update in ms
@@ -88,15 +88,14 @@ var cue = function() {
             this.active = false;
             if(this.score_miss==true && this.scored==false) {
                 this.scored = true;
-                score_response('miss', -1, this.cue_lane, [this.trial_num]);
+                score_response('miss', -1, this.cue_lane, [this.trial_num]); // this function has to be defined in main currently
             }
         }
 
         // update last move, current target distance
         this.last_move = curr;
         this.distance=lane_set[this.cue_lane].distance(this.pos); // fractional distance from current position to target pad
-    }
-
+    };
     this.launch=function(lane_num,launch_time,trial,travel_time) {
         this.active=true;
         this.scored=false;
@@ -117,15 +116,15 @@ var cue = function() {
         this.velocity[0]=(lane_set[this.cue_lane].delta[0])/travel_time;
         this.velocity[1]=(lane_set[this.cue_lane].delta[1])/travel_time;
         this.velocity[2]=(lane_set[this.cue_lane].delta[2])/travel_time;
-    }
+    };
     this.adjust_speed=function(speed_fraction) {
         //var ov=this.velocity[1];
         this.velocity[0]*=speed_fraction;
         this.velocity[1]*=speed_fraction;
         this.velocity[2]*=speed_fraction;
         //console.log(ov,this.velocity[1],speed_fraction);
-    }
-}
+    };
+};
 
 // depends on cue_set being a global variable for the current list of active cues
 function launch_cue(lane_num,launch_time,trial,scoreMiss){
@@ -220,7 +219,7 @@ var anim = function(anim_type,frames,args) {
             this.frame_count++;
         }
         return this.dynamic; // if a dynamic item is being animated, return true; this used to wait to terminate block
-    }
+    };
     this.add_text = function(x,info_type,text_size) {
         var y=100;
         for(var i=0;i<anim_list.length;i++){
@@ -231,7 +230,7 @@ var anim = function(anim_type,frames,args) {
         this.max_frames = -1;
         this.anim_args=[x,y,info_type];
         this.text_size=text_size;
-    }
+    };
     this.float_text = function(text,x,y,color,font,frames) { // could allow context variables like color, size, etc
         this.anim_args='float-text';
         this.frame_count=0;
@@ -239,5 +238,5 @@ var anim = function(anim_type,frames,args) {
         this.active=true;
         this.dynamic=true;
         this.anim_args=[text,x,y,color,font];
-    }
-}
+    };
+};
