@@ -641,8 +641,9 @@
         ctx.textAlign = "center";
         ctx.fillStyle = 'black';
         ctx.font = "20px Arial";
+        ctx.clearRect(0,0, layout.width, layout.height);  // window size hard coded here
         ctx.fillText("Welcome to SeVi WM training", layout.cue_area / 2.0, layout.height / 2 - 50);
-        ctx.fillText("Press any key to begin", layout.cue_area / 2.0, layout.height / 2);
+        ctx.fillText("Loading...", layout.cue_area / 2.0, layout.height / 2);
 
         if (preload_state == 'begin') {
             preload_state = 'start_wait';
@@ -662,9 +663,6 @@
                 response_log.push("Source URL: " + document.URL);
                 response_log.push("Run on " + new Date());
                 response_log.push("");
-                //for (key in cfg) {
-                //    response_log.push(key + ": " + cfg[key]);
-                //}
                 response_log.push("##########");
 
                 // consent form processing would go here if being used...
@@ -695,104 +693,6 @@
         requestId = window.requestAnimationFrame(preload_draw);
     }
 
-    function old_preload_draw() {
-        ctx.textAlign = "center";
-        ctx.fillStyle = 'black';
-        ctx.font = "20px Arial";
-        ctx.fillText("Welcome to SeVi WM training", layout.cue_area / 2.0, layout.height / 2 - 50);
-        ctx.fillText("Press any key to begin", layout.cue_area / 2.0, layout.height / 2);
-
-        if (preload_state == 'begin') {
-            if (cfg.hasOwnProperty('group')) {
-                // get session token from group
-                if (cfg.hasOwnProperty('demo')) {
-                    console.log("Demo mode: group token");
-                    workerId = 'demo';
-                    demo_mode=true;
-                    window.onbeforeunload=null;
-                } else if (cfg.hasOwnProperty('workerId')) {
-                    workerId = cfg['workerId'];
-                } else if (cfg.hasOwnProperty('name')) {
-                    workerId = cfg['name'];
-                } else {
-                    // prompt for name
-                    var d = new Date().toString().replace(/\S+\s(\S+)\s(\d+)\s(\d+)\s(\d+):(\d+):(\d+)\s.*/, '$2$1$3_$4$5$6');
-                    workerId = prompt("Please enter your SONA participant ID number","NoId_" + d);
-                    name_ok = /^[a-z0-9_]+$/i.test(workerId);
-                    while (!name_ok) {
-                        workerId = prompt("User id can only have numbers, letters, underscore:","NoId_" + d);
-                        name_ok = /^[a-z0-9_]+$/i.test(workerId);
-                    }
-                }
-                response_log.push("SubjectID: " + workerId)
-                console.log("Group " + cfg['group'] + ", requesting sessiontoken for " + workerId);
-                ServerHelper.group_session_request(cfg['group'], workerId);
-                preload_state = 'group_wait';
-            } else if (cfg.hasOwnProperty('session')) {
-                sessionToken = cfg['session'];
-                ServerHelper.request_config(sessionToken);
-                preload_state = 'session_wait';
-                console.log("Config requested");
-            } else {
-                terminate("Unable to load configuration");
-            }
-        } else if(preload_state == 'group_wait') {
-            if(ServerHelper.group_session_received) {
-                if(ServerHelper.sessionToken.slice(0,5)=='Error') {
-                    console.log(ServerHelper.sessionToken);
-                    terminate("Unable to establish session");
-                    return;
-                }
-                cfg['sessionToken']=ServerHelper.sessionToken;
-                console.log("Got session: "+cfg['sessionToken'])
-                sessionToken=cfg['sessionToken'];
-                ServerHelper.request_config(cfg['sessionToken']);
-                preload_state='session_wait';
-            }
-        } else if (preload_state == 'session_wait') {
-            if (ServerHelper.config_received == true) {
-                parse_config();
-                console.log("cfg parsed "+Object.keys(cfg).length.toString());
-                cfg_adjust();
-                ServerHelper.request_status();
-                preload_state = 'log_config';
-            }
-        } else if(preload_state=='log_config') {
-            if (config_parsed) { // don't continue until ready
-                // put config into the response log to start
-                response_log.push("Experiment app: " + _version);
-                response_log.push("Source URL: " + document.URL);
-                response_log.push("Run on " + new Date());
-                response_log.push("");
-                for (key in cfg) {
-                    response_log.push(key + ": " + cfg[key]);
-                }
-                response_log.push("##########");
-                preload_state = 'status_wait';
-                console.log("Config received, status requested for "+ServerHelper.sessionToken);
-            }
-        } else if (preload_state == 'status_wait') {
-            if (ServerHelper.status_received == true) {
-                // set starting variables
-                current_length = 2;
-                trial_number = 0; // last trial completed before this session
-                stats.reset();
-                initialize_screen();
-                session_start = window.performance.now();
-                stats.done_break(); // reset break counters
-                log_event('start', []);
-                parse_status();  // this will override defaults
-                preload_state='loaded';
-                console.log("Status received, starting");
-                requestId = window.requestAnimationFrame(draw);
-                return;
-            }
-        } else if(preload_state == 'loaded' ) {
-            console.log("Draw() should be running...")
-        }
-        requestId = window.requestAnimationFrame(preload_draw);
-    }
-
     function main() {
         var url=document.URL;
         var params=ServerHelper.empirical_start(url); // function in server.js to set up everything
@@ -810,13 +710,9 @@
             document.getElementById("mainWin").focus();
             requestId = window.requestAnimationFrame(preload_draw);
         } else {
-            //sessionToken=params['session'];
-            //console.log("Session token:"+sessionToken);
-            // copy params to cfg for saving in datalog
             window.onbeforeunload=warn_termination;
             for (var p in params) cfg[p]=params[p];
             document.getElementById("mainWin").focus();
-            // Start preload loop to get all the starting info
             requestId = window.requestAnimationFrame(preload_draw);
         }
     }

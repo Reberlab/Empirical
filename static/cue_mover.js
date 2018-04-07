@@ -107,7 +107,7 @@ var cue = function() {
             this.color=lane_set[this.cue_lane].cue_color;
         }
         else if (shuffle_list[current_cue]==1){
-         this.color='red';
+             this.color='red';
         }
         this.pos[0]=lane_set[this.cue_lane].start[0];
         this.pos[1]=lane_set[this.cue_lane].start[1];
