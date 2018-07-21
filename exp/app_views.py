@@ -42,6 +42,9 @@ import time
 # 'complete' type used to facilitate download (by restriction to just these events)
 # Conventionally, 'partial' types are used to reflect progress, 'complete' at finish but these aren't required
 
+# TODO: filer request calls will come through here
+#  Filer calls should only work if it has been a reasonable amount of time since start
+#  Maybe Report calls should work this waya s well?
 
 def empirical_error(msg):
     r="Error: %s\n" % msg

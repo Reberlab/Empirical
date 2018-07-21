@@ -5,30 +5,31 @@ from django.conf import settings
 
 from exp.models import Study, Experiment
 
+# Filer model is for handling upload of stimulus-files and js app files
+# For security, we'll want to only distribute files when there is an active session
+#  so the access should be through the session key
+#  we'll need to add a session security layer that only continues experiments within a certain time from start
+#  this could be configurable...
+class Filer(models.Model):
+    upload_date=models.DateTimeField(auto_now_add=True)
+    upload_user=models.CharField(max_length=100)
+    filename=models.CharField(max_length=255)
+    version=models.IntegerField(default=1)
+    contents=models.BinaryField(blank=True)
+
+class FileUploadForm(ModelForm):
+    # this will need a checkbox for new/updated file where if new, fails on duplicate filename
+    #  if updated, will add a new version and update the version number
+    class Meta:
+        model=Filer
+        fields=['filename']
+
+
 # Images and/or cfg files are uploaded as .zip files
 # These will be put in the MEDIA_ROOT/zip_tmp folder, then unzipped and added to the db
 # Unzipping will create a folder with the name of the zip file, all path information stripped from the archive
 # and named as zip/basename on extraction
 # Image files will be directly addressable by the pathname (via staticfiles)
-
-# Filer model is for handling upload of stimulus-files and js app files
-class Filer(models.Model):
-    upload_date=models.DateTimeField(auto_now_add=True)
-    upload_user=models.CharField(max_length=100)
-    filename=models.CharField(max_length=255)
-    contents=models.BinaryField(blank=True)
-
-class FileUploadForm(ModelForm):
-    class Meta:
-        model=Filer
-        fields=['filename']
-
-class EncryptKey(models.Model):
-    creationDate=models.DateTimeField(auto_now_add=True)
-    key=models.CharField(max_length=2048)
-
-    # method for converting a passphrase into an encryption key here?
-
 
 # Zip files can hold cfgs, stimulus-files or a mix of file types
 class ZipUpload(models.Model):
@@ -36,8 +37,8 @@ class ZipUpload(models.Model):
     #group=models.CharField(max_length=100)
     upload_date=models.DateTimeField(auto_now_add=True)
     upload_user=models.CharField(max_length=100)
-    study=models.ForeignKey('exp.Study',blank=True,null=True)
-    exp=models.ForeignKey('exp.Experiment',blank=True,null=True)
+    study=models.ForeignKey('exp.Study',blank=True,null=True,on_delete=models.CASCADE)
+    exp=models.ForeignKey('exp.Experiment',blank=True,null=True,on_delete=models.CASCADE)
     exp_restrict=models.BooleanField(default=False)
     exp_name=models.CharField(max_length=100,blank=True)
     exp_recycle=models.BooleanField(default=True)

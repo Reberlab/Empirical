@@ -5,8 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django import forms
 from django.utils.text import slugify
 
-from filer.models import Filer, EncryptKey, FileUploadForm, ZipUpload, ZipUploadForm, ImageUploadForm, ExpImage
-#from uploader.models import ZipUpload, ZipUploadForm, ExpImage, UploadEvent, UploadEventForm
+from filer.models import Filer, FileUploadForm, ZipUpload, ZipUploadForm, ImageUploadForm, ExpImage
 from exp.models import Study, Experiment, Session
 
 # for unpacking archives

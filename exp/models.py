@@ -5,6 +5,9 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 import hashlib, time, random
 from django import forms
 
+
+######################## Handling Studys (groups of Experiments)
+
 class Study(models.Model):
     user=models.CharField(max_length=100)
     creationDate=models.DateTimeField(auto_now_add=True)
@@ -30,19 +33,12 @@ class StudyForm(ModelForm):
                   'appletName': "Name of applet to run experiment",
                   'consentJSON':"Consent form in JSON:"}
 
-##########################
-
-#class ExperimentManager(models.Manager):
-#    def create_experiment(self,user,name,app,study,recycle,unique):
-#        e = self.create(user=user, name=name, appletName=app, study=study, recycle=recycle, unique_id=unique)
-#        e.create_token()
-#        e.save()
-#        return e
+########################## Handling Experiments (groups of cfg files)
 
 class Experiment(models.Model):
     # core definition of an experiment group
     name=models.CharField(max_length=100)
-    study=models.ForeignKey('Study',blank=True,null=True)
+    study=models.ForeignKey('Study',blank=True,null=True,on_delete=models.CASCADE)
     groupToken=models.CharField(max_length=100)
     recycle=models.BooleanField(default=True)
     unique_id=models.BooleanField(default=True)
@@ -107,8 +103,6 @@ class ExperimentForm(ModelForm):
 class ExperimentUploadForm(ModelForm):
 
     study_id=forms.ModelChoiceField(queryset=Study.objects.all(),label='Associated Study',required=True)
-    #add_all=forms.BooleanField(widget=forms.CheckboxInput,label='Add all available cfgs?',initial=True,required=False)
-    #readd_used=forms.BooleanField(widget=forms.CheckboxInput,label='Re-add cfgs with data?',initial=False,required=False)
     restrict_to_new=forms.BooleanField(widget=forms.CheckboxInput,label='Only administer new cfgs for this token',initial=False,required=False)
 
     class Meta:
@@ -118,10 +112,9 @@ class ExperimentUploadForm(ModelForm):
                   'unique_id': "Require unique worker id's to participate"}
 
 
-##############################
+############################## Handling session data (cfg files)
 
 class SessionManager(models.Manager):
-    # should user be passed in here as well?
     def create_session(self,name,exp,configFile,user):
         session = self.create(name=name,configFile=configFile,exp=exp,user=user)
         session.make_token()
@@ -131,8 +124,7 @@ class SessionManager(models.Manager):
 class Session(models.Model):
     sessionToken=models.CharField(max_length=100)
     name=models.CharField(max_length=100)
-    #expName=models.CharField(max_length=100)
-    exp=models.ForeignKey('Experiment',blank=True,null=True)
+    exp=models.ForeignKey('Experiment',blank=True,null=True,on_delete=models.CASCADE)
     configFile=models.TextField()
     lastStarted=models.DateTimeField(blank=True,null=True,default=None)
 
@@ -167,11 +159,11 @@ class ConfigForm(ModelForm):
                    'sessionToken': forms.HiddenInput()}
 
 
-########################
+######################## Reporting data from experiment apps
 
 class Report(models.Model):
     sessionToken=models.CharField(max_length=100)
-    sessionKey=models.ForeignKey('Session')
+    sessionKey=models.ForeignKey('Session',on_delete=models.CASCADE)
     eventType=models.CharField(max_length=100)
     uploadDate=models.DateTimeField(auto_now_add=True)
     dataLog=models.TextField()
@@ -186,8 +178,17 @@ class ReportForm(ModelForm):
         fields=['sessionToken', 'eventType', 'dataLog']
 
 
-############################
+############################ Tracking data downloads
 
+class Download(models.Model):
+    experiment=models.ForeignKey('Experiment',blank=True,null=True,on_delete=models.CASCADE)
+    downloadDate=models.DateTimeField(auto_now_add=True)
+    num_records=models.IntegerField(default=0)
+
+    def __unicode__(self):
+        return self.experiment.name+'_'+self.downloadDate.strftime('%d%b%y:%H%M')
+
+############################ Tracking suspicious upload events
 
 class Security(models.Model):
     sessionToken=models.CharField(max_length=100)
@@ -199,56 +200,3 @@ class Security(models.Model):
     def __unicode__(self):
         return self.sessionToken
 
-
-###### General classes used in views but aren't Djanog models
-
-# Experiments as a structure don't exist in the db, each session has it's own line
-#  so experiment information is assembled on the fly from what is in the db
-# class Experiment_desc():
-#     def __init__(self,name,fill=True):
-#         self.name=name
-#         if fill:
-#             self.find_sessions()
-#
-#     def find_sessions(self):
-#         session_list=Session.objects.all().filter(expName=self.name).order_by('-creationDate')
-#         if session_list!=[]:
-#             self.date=session_list[0].creationDate # experiment creation date is assumed to be the same for all config files
-#             self.token=session_list[0].sessionToken # this sessionToken can be used as a link to the experiment display view
-#             cfg_list=[]
-#             for s in session_list:
-#                 # check for data reports on this session
-#                 report_list=Report.objects.all().filter(sessionToken=s.sessionToken)
-#                 reports=[]
-#                 #for i in report_list:
-#                 #    r = (i.eventType,i.uploadDate)
-#                 #    reports.append(r)
-#                 cfg_list.append((s.name,s.sessionToken,s.creationDate,reports))
-#             #cfg_list.sort()
-#             self.cfg_list=cfg_list
-#             self.num_sessions=len(cfg_list)
-#         return
-#
-#     def find_data(self):
-#         session_list=Session.objects.all().filter(expName=self.name)
-#         reports=[]
-#         for s in session_list:
-#             report_list=Report.objects.all().filter(sessionToken=s.sessionToken).order_by('-uploadDate')
-#             if report_list.exists():
-#                 for r in report_list:
-#                     reports.append((s.sessionToken,r.eventType,r.pk,r.uploadDate,self.data_summary(r.dataLog,10,'###')))
-#         return reports
-#
-#     # Data summarizing/shortening helper function
-#     def data_summary(self, log, length, separator=''):
-#         lines = log.split('\n')
-#         count = 0
-#         summary = ''
-#         for i in lines:
-#             if count < length:
-#                 summary = summary + ('%d. ' % (count + 1)) + i + '\n'
-#             count = count + 1
-#             if i[:len(separator)] == separator:
-#                 summary = summary + separator + '\n'
-#                 count = 0
-#         return summary

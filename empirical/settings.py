@@ -13,15 +13,14 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
-# Installation settings
-from local_settings import *
-
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALLOWED_HOSTS = []
+# default database settings could go here too
+
+# Installation settings
+from .local_settings import *
 
 # Application definition
-
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -67,13 +66,22 @@ WSGI_APPLICATION = 'empirical.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 
+# Will need to be adjusted for public/private
+# Real DB info will go in local_settings.py, default to local sqlite if doesn't exist
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
+    #'default': {
+    #    'ENGINE': 'django.db.backends.mysql',
+    #    'NAME': 'empirical',
+    #    'HOST': 'dbtest.reberlab.org',
+    #    'USER': 'empirical_db',
+    #    'PASSWORD': 'development_testing_only'
+        # PORT 3306, myseql-5-6
+    #}
 }
 
 
@@ -92,7 +100,7 @@ USE_TZ = True
 
 LOGIN_URL='/login/'
 
-VERSION="Empirical 0.3 Aug 2016"
+VERSION="Empirical 0.4 July 2018"
 
 
 # Static files (CSS, JavaScript, Images)

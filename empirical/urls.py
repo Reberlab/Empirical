@@ -19,14 +19,27 @@ from django.contrib.auth import views as auth_views
 from django.conf.urls.static import static
 from django.conf import settings
 
+from django.urls import include, path
+
 from . import views
 
 urlpatterns = [
-    url(r'^$', views.index, name='index'),
-    url(r'^home/', views.home, name='home'),
-    url(r'^admin/', include(admin.site.urls)),
-    url(r'^exp/', include('exp.urls'), name='exp'),
-    url(r'^file/', include('filer.urls'), name='filer'),
-    url(r'^login/$', auth_views.login, {'template_name': 'login.html'}),
-    url(r'^logout/$', auth_views.logout, {'next_page': 'index'}, name='auth_logout'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    path('', views.index),
+    path('home/', views.home),
+    path('admin/', include(admin.site.urls)),
+    path('exp/',include('exp.urls')),
+    path('file/',include('filer.urls')),
+    path('login/',auth_views.login),  # not sure about these
+    path('logout/',auth_views.logout) # or this
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + \
+    static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+# urlpatterns = [
+#     url(r'^$', views.index, name='index'),
+#     url(r'^home/', views.home, name='home'),
+#     url(r'^admin/', include(admin.site.urls)),
+#     url(r'^exp/', include('exp.urls'), name='exp'),
+#     url(r'^file/', include('filer.urls'), name='filer'),
+#     url(r'^login/$', auth_views.login, {'template_name': 'login.html'}),
+#     url(r'^logout/$', auth_views.logout, {'next_page': 'index'}, name='auth_logout'),
+# ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
