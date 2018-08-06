@@ -44,11 +44,10 @@ var ServerHelper = {
     empirical_start: function(url) {
         var params={};
         var q=url.split('?');
-        //u = new URL(url);
         var u=window.location;
         if (u.port=='' || u.port==80) host=u.hostname;
-        else host=u.hostname+':'+u.port
-        this.server_url = u.protocol + '//' + host +'/exp/';
+        else host=u.hostname+':'+u.port;
+        this.server_url = u.protocol + '//' + host + '/'; // +'/exp/'; Removing the exp reference here for now
         this.image_url = u.protocol + '//' + host + '/images/';
         if (q.length<2) return(params);
         q = q[1].split('&');

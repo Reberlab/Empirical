@@ -20,12 +20,11 @@
 </div>
 
 <script src="server.js"></script>
-<script src="trivia.js"></script>
 
 <script>
 
     var canvas = document.getElementById("mainWin");
-    var _version = "JS Experiment app";
+    var _version = "JS Memory Experiment app";
     var ctx = canvas.getContext("2d");
     var requestId = 0;
     var session_start;
@@ -103,7 +102,7 @@
         layout.clear();
         if (state=='init') {
             // instructions
-            message(['Welcome to the 205 Sring 2016 ','Short Class Experiment',
+            message(['Welcome to the 205 Spring 2016 ','Short Class Experiment',
                     'Thanks for volunteering to help out',
                     'This experiment will take about 5 minutes',
                     'Your participation is entirely voluntary',

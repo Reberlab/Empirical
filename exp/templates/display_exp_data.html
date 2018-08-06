@@ -10,18 +10,33 @@
     <li>Recycle {{ exp.recycle }}</li>
     <li>Require unique id {{ exp.unique_id }}</li>
     </ul>
+    <h3>{{ reports|length }} total data records </h3>
     <ul>
     <li><a href="{%  url 'download_experiment' exp.pk %}">Download all experiment data</a></li>
     {% for t in events %}
-        <li><a href="{%  url 'download_experiment' exp.pk t %}">Download all experiment data of type [{{ t }}]</a></li>
+        <li><a href="{%  url 'download_exp_type' exp.pk t %}">Download all experiment data of type [{{ t }}]</a></li>
     {% endfor %}
     </ul>
     <br/>
 
+    <h3>Downloads</h3>
+    <table>
+    <tr><th>Download Date</th><th>Event Type</th><th>Number of Records</th><th>From</th><th>Filename</th><th>Link</th></tr>
+    {% for d in downloads %}
+        <tr><td>{{ d.downloadDate }}</td>
+            <td align="center">{{ d.event_type }}</td>
+            <td align="center"> {{ d.num_records }}</td>
+            <td align="center">{{ d.downloadSince }}</td>
+            <td><a href="/images/zip_tmp/{{ d.filename }}">{{ d.filename }}</a></td>
+            <td><a href="{% url 'download_exp_since' exp.pk d.pk %}">Download Since</a></td> </tr>
+    {% endfor %}
+    </table>
+
+    <h3>Latest 100 Session Records</h3>
     <table>
     <tr><th>Session Token</th><th>Id</th><th>Type</th><th>Date</th><th>Content</th></tr>
 
-    {% for r in reports %}
+    {% for r in reports|slice:":100" %}
         <tr>
         <td valign="top" align="center"><a href="{% url 'session_data' r.0 %}">{{ r.0 }}</a></td>
         <td valign="top" align="center"><a href="{% url 'session_data' r.0 r.1 %}">{{ r.1 }}</a></td>

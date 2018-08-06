@@ -4,14 +4,16 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
 from exp.models import Session, Report, ReportForm, Study, StudyForm, Security, ConfigForm, Experiment, ExperimentForm
+from filer.models import Filer
 from datetime import date, datetime
 import time
-import json
-from django.templatetags.static import static
-#from django.templatetags.static import static
 
-from app_views import *
-from data_views import *
+import json
+import operator
+from django.templatetags.static import static
+
+from .app_views import *
+from .data_views import *
 
 # The following 3 functions display information about the experiments and sessions in the database
 # index() displays a list of all experiments, up to 10 config files listed per experiment
@@ -25,22 +27,29 @@ def index(request):
 
 # -- one study, list all associated experiments
 @login_required
-def one_study(request, studyNumber=''):
+def one_study(request, studyNumber=0):
     try:
-        s = Study.objects.get(pk=int(studyNumber))
+        s = Study.objects.get(pk=studyNumber)
     except:
         return render(request, 'Object_not_found.html', {'token': studyNumber, 'type': 'Study'})
 
     e = Experiment.objects.filter(study=s.pk)
-    return render(request, 'one_study.html', {'study': s, 'exp_list': e})
+    # sort this to group by experimenter
+    exp_list=[]
+    if e.exists():
+        for i in e:
+            exp_list.append([i.user,i.pk,i])
+        exp_list.sort()
+        (users, pkids, exp_list) = zip(*exp_list)
+    return render(request, 'one_study.html', {'study': s, 'exp_list': exp_list})
 
 
 # edit_study -- update for new study fields
 @login_required
-def edit_study(request, studyNumber=''):
-    if studyNumber!='':
+def edit_study(request, studyNumber=0):
+    if studyNumber!=0:
         try:
-            s=Study.objects.get(pk=int(studyNumber))
+            s=Study.objects.get(pk=studyNumber)
         except:
             s=None
     else:
@@ -69,9 +78,9 @@ def edit_study(request, studyNumber=''):
 
 # experiment() displays information on a single experiment including every session
 @login_required
-def one_experiment(request, expNumber=''):
+def one_experiment(request, expNumber=0):
     try:
-        e = Experiment.objects.get(pk=int(expNumber))
+        e = Experiment.objects.get(pk=expNumber)
     except:
         return render(request, 'Object_not_found.html', {'token': expNumber, 'type': 'Experiment'})
 
@@ -90,37 +99,40 @@ def one_experiment(request, expNumber=''):
             d=timezone.make_aware(datetime(2, 1, 1, tzinfo = None), timezone.get_default_timezone())
         else:
             d=i.lastStarted
-        if session_order.has_key(i.sessionToken):
+        if i.sessionToken in session_order:
             if session_order[i.sessionToken]<e.numTokens:
                 token_order.append((0, d, i))
             else:
                 token_order.append((1, d, i))
-                #token_order.append((session_order[i.sessionToken],i))
         else:
             token_order.append((99999, d, i))
     if token_order!=[]:
-        token_order.sort()
+        token_order.sort(key=operator.itemgetter(0,1))
         (count_list, date_list, session_list)=zip(*token_order)
     else:
         session_list=[]
 
     study=e.study
-    applet_url=request.build_absolute_uri(static(study.appletName))
+    # Check if applet is in the file db
+    if Filer.objects.filter(filename=study.appletName).exists():
+        applet_url='http://%s/file/show/%s' % (request.get_host(),study.appletName)
+    else:
+        applet_url=request.build_absolute_uri(static(study.appletName))
     link=e.link_url(applet_url)
-    return render(request, 'experiment_info.html', {'exp': e, 'tokens': token_order, 'order': session_order, 'sessions': session_list, 'parent': study, 'link': link})
+    return render(request, 'experiment_info.html', {'exp': e, 'sessions': session_list, 'parent': study, 'link': link})
 
 @login_required()
-def edit_experiment(request, expNumber='', studyNumber=''):
-    if expNumber!='':
+def edit_experiment(request, expNumber=0, studyNumber=0):
+    if expNumber!=0:
         try:
-            e=Experiment.objects.get(pk=int(expNumber))
+            e=Experiment.objects.get(pk=expNumber)
         except:
             return render(request, 'Object_not_found.html', {'token': expNumber, 'type': 'Experiment'})
     else:
         e=None
 
     try:
-        parent_study=Study.objects.get(pk=int(studyNumber))
+        parent_study=Study.objects.get(pk=studyNumber)
     except:
         return render(request, 'Object_not_found.html', {'token': studyNumber, 'type': 'Study'})
 
@@ -164,9 +176,9 @@ def one_session(request, sessionToken):
 
 # to do: force link to existing experiment...
 @login_required
-def new_config(request, expNumber=''):
+def new_config(request, expNumber=0):
     try:
-        e=Experiment.objects.get(pk=int(expNumber))
+        e=Experiment.objects.get(pk=expNumber)
     except:
         return render(request, 'Object_not_found.html', {'token': expNumber, 'type': 'Experiment'})
     if request.method=="POST":
@@ -234,25 +246,6 @@ def add_token_creation_event(sessionToken,studyName):
     token_report=Report(sessionToken=sessionToken,sessionKey=key,eventType='token',dataLog=consent)
     token_report.save()
     return
-
-# from mturk_hits import *
-
-# link token form to do
-# -- get rid of the mturk form elements (eventually remove from table too)
-# -- change the text field box to produce a set of name linked tokens: app?group=xx&workerid=yyy
-# -- allow for resuse of used cfg files and selection of specific cfgs to put into a token generation event
-#    maybe through radio check boxes to the left of the listed sessions? and/or a check box to "re-use all"
-#    or maybe as an option in the number of tokens, add 'all unused' and 'all, reuse'
-
-# Note -- how do we use this to replace/update a specific condition within a group token without changing
-# the URL?  On mturk, changing the URL changes the HIT and that means people will sign out a HIT that
-# we have to filter/prevent them from running.
-# Seems like we might need another element of the token table listing a subset of session tokens in use
-# out of a broader set to allow for focused subsets.
-
-
-
-
 
 # What calls this rendered list of security reports? -- PJR
 def security_list(request):

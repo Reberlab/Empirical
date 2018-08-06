@@ -69,8 +69,8 @@
         clear: function() {
             ctx.clearRect(0,0, this.width, this.height);
             this.background();
-        }
-    };
+        },
+    }
 
     var session = []; // holds the structure of the session information
     var session_state_counter=0;
@@ -116,7 +116,6 @@
             }
         };
         this.check_speed=function(){
-            console.log("CS: ",this.speed_correct_counter,this.speed_trials_counter);
             if(this.speed_trials_counter>=this.checkevery){ // will need to update velocity for all activte cues
                 var f=1.0;
                 if(this.speed_correct_counter>this.thresh_up){
@@ -233,12 +232,9 @@
 
     // args[0] is trial_number, others are for passing to log_response
     function score_response(event_type,cue_index,key_lane,args){
-        var trial_num;
-        if(event_type=='miss' || cue_index<0) trial_num=args[0];           // no cue index, so get trial num from args[0]
-        else trial_num=cue_set[cue_index].trial_num;
-        console.log("SR: ",trial_num,event_type,args);
         if(event_type=='hit'){ // args -- [cue_set[closest_index].trial_num, key, cue_set[closest_index].position.toFixed(3)]
             cue_set[cue_index].scored = true;
+            var trial_num=cue_set[cue_index].trial_num;
             if(cfg['code_pattern'][trial_num]==1) stats.count('seq_correct');
             else stats.count('foil_correct');
             stats.hit_score(args[3]); // update the score
@@ -249,13 +245,15 @@
         else if(event_type=='miss' || event_type=='err') {
             if(event_type=='err') {
                 if (cue_index>=0) {
+                    trial_num = cue_set[cue_index].trial_num;
+                    cue_set[cue_index].scored = true;
                     if(cfg['adaptive_speed']!=0 && cue_set[cue_index].scored==false) Speeder.score_incorrect(trial_num); // only adjust speed if not scored already
                     if(cfg['feedback_remove_cue']=='all' || cfg['feedback_remove_cue']=='neg') cue_set[cue_index].active = false;
-                    cue_set[cue_index].scored = true;
                 }
                 if(cfg['code_pattern'][trial_num]==1) stats.count('seq_incorrect');
                 else stats.count('foil_incorrect');
             } else if(event_type=='miss'){   // this triggers if unscored cue leaves the screen
+                trial_num=args[0];           // no cue index, so get trial num from args[0]
                 if(cfg['adaptive_speed']!=0) Speeder.score_incorrect(trial_num);
                 if(cfg['code_pattern'][trial_num]==1) stats.count('seq_incorrect');
                 else stats.count('foil_incorrect');

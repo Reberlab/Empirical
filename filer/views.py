@@ -6,17 +6,33 @@ from django import forms
 from django.utils.text import slugify
 
 from filer.models import Filer, FileUploadForm, ZipUpload, ZipUploadForm, ImageUploadForm, ExpImage
-from exp.models import Study, Experiment, Session
+from exp.models import Study, Experiment, Session, Download
 
 # for unpacking archives
-import zipfile, os.path, glob
+import zipfile, os.path, glob, datetime
 
 
 # show the list of available files in the db
 @login_required
 def filer_index(request):
     # database file list
-    f=Filer.objects.all()
+    db_files=Filer.objects.all()
+
+    # find the latest versions
+    f={}
+    for i in db_files:
+        if i.filename in f:
+            if i.version>f[i.filename]: # this is the latest version found so far
+                f[i.filename]=i.version
+        else:
+            f[i.filename]=i.version
+
+    # assemble and then sort the list
+    file_list=[]
+    for i in db_files:
+        if i.version==f[i.filename]: # latest version
+            file_list.append([i.upload_user,i.filename,i.version,i.upload_date,i.notes])
+    file_list.sort()
 
     # media directories
     media_list = glob.glob(os.path.join(os.path.dirname(settings.MEDIA_ROOT), "*"))
@@ -27,39 +43,101 @@ def filer_index(request):
         if os.path.isdir(i):
             if os.path.split(i)[-1]=='zip_tmp':
                 # ziptmp contents
-                zip_list=glob.glob(os.path.join(i,"*"))
+                zip_files=glob.glob(os.path.join(i,"*"))
+                for j in zip_files:
+                    fn=os.path.basename(j)
+                    # get creation time, check if in file db
+                    if Download.objects.filter(filename=fn).exists():
+                        in_filer='Download'
+                    else:
+                        in_filer=''
+                    zip_list.append([datetime.datetime.fromtimestamp(os.path.getmtime(j)),fn,in_filer])
             else:
                 image_list=[os.path.basename(fn) for fn in glob.glob(os.path.join(i,"*"))]
                 dir_list.append((os.path.basename(i),image_list))
+    zip_list.sort()
+    zip_list.reverse()
+    # delete old files
+    if len(zip_list) > settings.ZIP_RETAIN:
+        for j in range(settings.ZIP_RETAIN,len(zip_list)):
+            zip_list[j][2]='Deleted'
+            os.remove(os.path.join(os.path.dirname(settings.MEDIA_ROOT), settings.ZIP_TMP, zip_list[j][1]))
+            f=Download.objects.filter(filename=zip_list[j][1])
+            if f.exists():
+                f[0].filename=''
+                f[0].save()
 
-    return render(request, 'filer_index.html', {'file_list': f, 'media': dir_list, 'tmp': zip_list})
+    return render(request, 'filer_index.html', {'file_list': file_list, 'media': dir_list, 'tmp': zip_list})
 
 # upload file to db
 @login_required
-def filer_add(request):
+def filer_add(request,filename=''):
     if request.method=="POST":
         form = FileUploadForm(request.POST, request.FILES)
         if form.is_valid():
             # add username
             f=form.save(commit=False)
             f.upload_user=request.user
-            f.save()
-            return
-        else:
-            return
+            # if filename exists in db and overwrite not true, don't save
+            prior=Filer.objects.filter(filename=f.filename).order_by('-version')
+            if prior:
+                if form.cleaned_data['update']:
+                    f.version=prior[0].version+1
+                else:
+                    return render(request, 'filer_uploaded.html', {'name': f.filename, 'version': 'Error', 'error': True})
 
-    upload_form=FileUploadForm()
+            # load the contents into the model
+            fp=f.file.open('rb')
+            f.contents=fp.read()
+            fp.close()
+            if os.path.exists(f.file.path):
+                os.remove(f.file.path)
+            f.file=None
+            f.save()
+            num_bytes=len(f.contents)
+            return render(request, 'filer_uploaded.html', {'name': f.filename, 'length': num_bytes, 'version': f.version, 'notes': f.notes, 'error': False})
+        else:
+            return render(request, 'filer_uploaded.html', {'name': 'Invalid', 'version': 0, 'error': True})
+
+    update_default = False
+    notes = ''
+    if filename!='':
+        # populate with prior information about file
+        prior = Filer.objects.filter(filename=filename).order_by('-version')
+        if prior:
+            update_default=True
+            notes=prior[0].notes
+    upload_form=FileUploadForm(initial={'filename': filename, 'notes': notes, 'update': update_default})
     return render(request, 'filer_upload.html', {'form': upload_form})
 
-# create encryption key, add
+# Show summary of all versions
 @login_required
-def filer_encrypt(request):
-    return render(request, 'filer_index.html')
+def filer_versions(request,filename='',version=0):
+
+    if filename=='':
+        return render(request, 'filer_error.html', {'name': 'Versions of null filename', 'version': ''})
+
+    db_files=Filer.objects.filter(filename=filename)
+    version_list=[]
+    for i in db_files:
+        version_list.append([i.version,i.upload_user,i.upload_date,i.notes,str(i.contents[:256])])
+
+    return render(request, 'filer_versions.html', {'versions': version_list})
 
 # return the raw file via http
 @login_required
-def filer_serve(request):
-    return render(request, 'filer_index.html')
+def filer_serve(request,filename='',version=0):
+    # return the file from the database if it exists
+    if version==0:
+        files = Filer.objects.filter(filename=filename).order_by('-version')
+        if files:
+            return HttpResponse(files[0].contents)
+    else:
+        files=Filer.objects.filter(filename=filename,version=version)
+        if files:
+            return HttpResponse(files[0].contents)
+
+    return render(request, 'filer_error.html', {'name': filename, 'version': version})
 
 # rename, delete, copy?
 @login_required
@@ -76,11 +154,6 @@ def is_image_file(fn):
     if ext in ['.jpg','.png','.gif','.ppm', '.GIF', '.JPG', '.PNG', '.PPM']:
         return True
     return False
-
-#class ImageUpload(forms.Form):
-#    zip=forms.FileField() #upload_to=settings.ZIP_TMP
-#    image_dir = forms.CharField(max_length=100)
-#    image_dir_choice = forms.ChoiceField()
 
 @login_required
 def upload_images(request):
@@ -168,7 +241,7 @@ def prep_upload(request):
     return render(request, 'upload_select_study.html', {'form': form})
 
 @login_required
-def upload_zip(request, studyNumber='', expNumber=''):
+def upload_zip(request, studyNumber=0, expNumber=0):
 
     if request.method=="POST":
         # pass study number as hidden form field
@@ -236,7 +309,7 @@ def upload_zip(request, studyNumber='', expNumber=''):
                     # add session object
                     fp = zf.open(f.filename)
                     raw_cfg = fp.read()
-                    cfg = raw_cfg.encode('utf-8','ignore')  # to avoid getting db breaking characters stored by accident
+                    cfg = raw_cfg.decode('utf-8','ignore')  # to avoid getting db breaking characters stored by accident
                     fp.close()
                     c = Session.objects.create_session(name=fn, #f.filename,
                                                        exp=e,
@@ -254,14 +327,14 @@ def upload_zip(request, studyNumber='', expNumber=''):
         else:
             return HttpResponse("Invalid form")
     try:
-        s=Study.objects.get(pk=int(studyNumber))
+        s=Study.objects.get(pk=studyNumber)
     except:
         return HttpResponse("Bad Study Number")
 
     e=None
     if expNumber!='':
         try:
-            e=Experiment.objects.get(pk=int(expNumber))
+            e=Experiment.objects.get(pk=expNumber)
         except:
             e=None
 

@@ -1,0 +1,22 @@
+{% extends 'base_filer.html' %}
+
+
+{% block content %}
+
+    <table>
+    <tr><th>Version</th><th>User</th><th>Upload Date</th><th>Notes</th><th>Content (first 256 bytes)</th></tr>
+    {% for i in versions %}
+        <tr>
+        <td>{{ i.0 }}</td>
+        <td>{{ i.1 }}</td>
+        <td>{{ i.2 }}</td>
+        <td>{{ i.3 }}</td>
+        <td>{{ i.4 }}</td>
+        </tr>
+    {% endfor %}
+
+    </table>
+
+    <a href="{% url 'filer_index' %}">Return to Files Index</a>
+
+{% endblock %}

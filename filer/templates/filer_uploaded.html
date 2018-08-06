@@ -1,0 +1,18 @@
+{% extends 'base_filer.html' %}
+
+
+{% block content %}
+    {% if error %}
+        <h2>Error: File not uploaded</h2>
+    {% else %}
+        <h2>Uploaded file: {{ name }}</h2>
+        <p>Length: {{ length }} bytes</p>
+        {% if version > 1 %}
+            <p>New version: {{ version }}</p>
+        {% endif %}
+        <p><table style="width:300px"><tr><td>{{ notes }}</td></tr></table></p>
+    {% endif %}
+
+   <a href="{% url 'filer_index' %}">Return to Files Index</a>
+
+{% endblock %}

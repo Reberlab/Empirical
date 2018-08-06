@@ -13,24 +13,24 @@ Including another URLconf
     1. Add an import:  from blog import urls as blog_urls
     2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
 """
-from django.conf.urls import include, url
+# Deprecated Django 1.x
+#from django.conf.urls import include, url
+#from django.contrib.auth import views as auth_views
+
 from django.contrib import admin
-from django.contrib.auth import views as auth_views
 from django.conf.urls.static import static
 from django.conf import settings
-
 from django.urls import include, path
 
 from . import views
 
 urlpatterns = [
-    path('', views.index),
-    path('home/', views.home),
-    path('admin/', include(admin.site.urls)),
-    path('exp/',include('exp.urls')),
-    path('file/',include('filer.urls')),
-    path('login/',auth_views.login),  # not sure about these
-    path('logout/',auth_views.logout) # or this
+    path('', views.index, name='index'),
+    path('home/', views.home, name='home'),
+    path('admin/', admin.site.urls),
+    path('exp/',include('exp.urls'), name='exp'),
+    path('file/',include('filer.urls'), name='filer'),
+    path('accounts/', include('django.contrib.auth.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + \
     static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 

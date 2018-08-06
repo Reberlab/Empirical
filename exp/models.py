@@ -50,17 +50,15 @@ class Experiment(models.Model):
     user=models.CharField(max_length=100)
     creationDate=models.DateTimeField(auto_now_add=True)
 
-    #objects=ExperimentManager()
-
     def __unicode__(self):
         return self.name+':'+self.groupToken
 
     def create_token(self):
         # add tokens
-        newToken=hashlib.md5(self.name+str(time.time())+("%08d" % random.randint(100000,999999))).hexdigest()[:16]
+        newToken=hashlib.md5((self.name+str(time.time())+("%08d" % random.randint(100000,999999))).encode('utf-8')).hexdigest()[:16]
         # guarantee unique, just in case
         while Experiment.objects.all().filter(groupToken=newToken).exists():
-            newToken=hashlib.md5(self.name+str(time.time())+("%08d" % random.randint(100000,999999))).hexdigest()[:16]
+            newToken=hashlib.md5((self.name+str(time.time())+("%08d" % random.randint(100000,999999))).encode('utf-8')).hexdigest()[:16]
         self.groupToken=newToken
         return
 
@@ -139,10 +137,10 @@ class Session(models.Model):
         return self.exp.name+':'+self.name
 
     def make_token(self):
-        newToken=hashlib.md5(self.name+self.exp.name+str(time.time())+("%08d" % random.randint(100000,999999))).hexdigest()[:16]
+        newToken=hashlib.md5((self.name+self.exp.name+str(time.time())+("%08d" % random.randint(100000,999999))).encode('utf-8')).hexdigest()[:16]
         # guarantee unique, just in case
         while Session.objects.all().filter(sessionToken=newToken).exists():
-            newToken=hashlib.md5(self.name+self.name+str(time.time())+("%08d" % random.randint(100000,999999))).hexdigest()[:16]
+            newToken=hashlib.md5((self.name+self.name+str(time.time())+("%08d" % random.randint(100000,999999))).encode('utf-8')).hexdigest()[:16]
         self.sessionToken=newToken
         return
 
@@ -182,8 +180,11 @@ class ReportForm(ModelForm):
 
 class Download(models.Model):
     experiment=models.ForeignKey('Experiment',blank=True,null=True,on_delete=models.CASCADE)
+    event_type=models.CharField(max_length=100)
     downloadDate=models.DateTimeField(auto_now_add=True)
+    downloadSince=models.CharField(max_length=100)
     num_records=models.IntegerField(default=0)
+    filename=models.CharField(max_length=100)
 
     def __unicode__(self):
         return self.experiment.name+'_'+self.downloadDate.strftime('%d%b%y:%H%M')

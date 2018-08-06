@@ -2,11 +2,12 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from exp.models import Session, Report, ReportForm, Experiment, Security
 
-from datetime import date, datetime, timedelta
+# from datetime import date, datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
 
 import time
+import operator
 
 # These are the functions that work with apps
 # exp/group/<groupToken>
@@ -49,7 +50,7 @@ import time
 def empirical_error(msg):
     r="Error: %s\n" % msg
     r=r+settings.VERSION+'\n'
-    r=r+("At: %s\n" % datetime.now())
+    r=r+("At: %s\n" % timezone.now())
     return r
 
 def xml_string(xmldict):
@@ -63,15 +64,17 @@ def session_order(e, session_list): # e is the experiment, session_list is a lis
     configs=Session.objects.filter(exp=e)
     order=[]
     for i in configs:
+        # order will be the list (used, date, object) so that unused come first, then listed by date
         if i.sessionToken in session_list:
             if i.lastStarted is None:
-                d = timezone.make_aware(datetime(2, 1, 1, tzinfo=None), timezone.get_default_timezone())
-                #d = timezone.make_aware(datetime.min, timezone.get_default_timezone())
+                # d = timezone.make_aware(datetime(2, 1, 1, tzinfo=None), timezone.get_default_timezone())
+                # d = timezone.make_aware(datetime.min, timezone.get_default_timezone())
+                order.append((0,None,i))
             else:
                 d = i.lastStarted
-            order.append((d,i))
-    order.sort()
-    (date_list, session_list)=zip(*order)
+                order.append((1,d,i))
+    order.sort(key=operator.itemgetter(0,1))
+    (used, date_list, session_list)=zip(*order)
     return session_list
 
 def start_session(request, groupToken, workerId=''):
@@ -120,7 +123,7 @@ def start_session(request, groupToken, workerId=''):
                 prior_session=token
                 break
     else: # create a synthetic workerId if not provided
-        workerId='NoId_%s' % datetime.now().strftime("%m%d%Y_%H%M%S")
+        workerId='NoId_%s' % timezone.now().strftime("%m%d%Y_%H%M%S")
     if has_prior: # either returning to finish or restarting
         # if there is no token, will have to search the db to find the session -- to do
         if prior_session=='':
@@ -165,7 +168,7 @@ def start_session(request, groupToken, workerId=''):
 
     # update last started
     if not demo_mode:
-        c.lastStarted=datetime.now()
+        c.lastStarted=timezone.now()
         c.save()
 
     start_xml={}
@@ -200,7 +203,7 @@ def newstart_session(request, groupToken, workerId=''):
         # demo session
         session=session_list[0]
     elif workerId=='': # create a synthetic workerId if not provided
-        workerId='NoId_%s' % datetime.now().strftime("%m%d%Y_%H%M%S")
+        workerId='NoId_%s' % timezone.now().strftime("%m%d%Y_%H%M%S")
 
     config_list=session_order(e,session_list) # sorting needs to be done manually in the function above
     if e.recycle==False:
@@ -221,7 +224,7 @@ def newstart_session(request, groupToken, workerId=''):
     config=c.configFile
 
     # update last started
-    c.lastStarted=datetime.now()
+    c.lastStarted=timezone.now()
     c.save()
 
     # update study particpant list
@@ -251,7 +254,7 @@ def return_status(request, sessionToken, workerId=''):
 
     # wrap report in XML to include the timestamp and time since
     status_xml = {}
-    status_xml['Empirical:status'] = reports[0].dataLog[:256]  # datalog length is limited to returning 256 to avoid abuse
+    status_xml['Empirical:status'] = reports[0].dataLog[:2048]  # datalog length is limited to returning 2k bytes to avoid abuse
     status_xml['Empirical:uploaddate'] = reports[0].uploadDate
     dt = timezone.now() - reports[0].uploadDate
     status_xml['Empirical:timesince'] = "%.4f" % (dt.seconds / 3600.0)
@@ -287,12 +290,12 @@ def security_check(sessionToken,eventType):
     r=Report.objects.filter(sessionToken=sessionToken).order_by('-uploadDate')
     for i in r:
         if i.eventType==eventType:
-            elap=datetime.now(i.uploadDate.tzinfo)-i.uploadDate
+            elap=timezone.now()-i.uploadDate
             if elap.total_seconds()<settings.SECURITY_UPLOAD_MIN_TIME:
                 # add security event object
                 if s!=None:
                     s.hit_count=s.hit_count+1
-                    if s.count>settings.MAX_SECURITY_COUNT:
+                    if s.hit_count>settings.MAX_SECURITY_COUNT:
                         s.locked=True
                     s.securityLog=s.securityLog+'%d seconds since last update; ' % elap.total_seconds()
                     s.save()
@@ -303,7 +306,6 @@ def security_check(sessionToken,eventType):
                 return False
     return True
 
-# to do -- wrap upload in xml structure adding worker id, configfile
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:

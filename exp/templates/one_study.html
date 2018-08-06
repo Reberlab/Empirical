@@ -4,12 +4,14 @@
     <h1>Study <b>{{ study.name }}</b> </h1>
     <p>Created by {{ study.user }} on {{ study.creationDate }}</p>
     <p>Applet to run with this study {{ study.appletName }}</p>
+    <p><a href="{% url 'edit_study' study.id%}">Edit this Study</a></p>
     <table>
-    <tr><th>Experiment name</th><th>URL Token</th><th>Creation date</th><th>Available Sessions</th><th>Total sessions</th></tr>
+    <tr><th>Experiment name</th><th>Created by</th><th>URL Token</th><th>Creation date</th><th>Available Sessions</th><th>Total sessions</th></tr>
 
     {% for i in exp_list %}
         <tr>
         <td><a href="{% url 'one_experiment' i.pk %}"><b> {{ i.name }}</b></a></td>
+        <td>{{ i.user }}</td>
         <td>{{ i.groupToken }}</td>
         <td>{{ i.creationDate }}</td>
         <td>{{ i.numTokens }}</td>
@@ -18,14 +20,12 @@
     {% endfor %}
     </table>
     <ul>
-    <li><a href="{% url 'study_data' study.pk %}">View data</a></li>
-    <li><a href="{% url 'new_experiment' study.pk %}">Create Experiment manually</a></li>
     <li><a href="{% url 'upload_sessions' study.pk %}">Add Experiment from Zip file</a></li>
-    <li><a href="{% url 'edit_study' study.id%}">Edit this Study</a></li>
+    <li><a href="{% url 'new_experiment' study.pk %}">Create Experiment manually</a></li>
     </ul>
     <br/>
     <p>Consent form JSON</p>
-    <p>{{ study.consentJSON }}</p>
+    <table><tr><td>{{ study.consentJSON }}</td></tr></table>
     <p>Participant list</p>
-    <p>{{ study.participants }}</p>
+    <table><tr><td>{{ study.participants }}</td></tr></table>
 {% endblock content %}

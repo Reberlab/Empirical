@@ -15,6 +15,8 @@ class Filer(models.Model):
     upload_user=models.CharField(max_length=100)
     filename=models.CharField(max_length=255)
     version=models.IntegerField(default=1)
+    file=models.FileField()
+    notes=models.TextField(default='')
     contents=models.BinaryField(blank=True)
 
 class FileUploadForm(ModelForm):
@@ -22,7 +24,12 @@ class FileUploadForm(ModelForm):
     #  if updated, will add a new version and update the version number
     class Meta:
         model=Filer
-        fields=['filename']
+        fields=['filename','file','notes']
+
+    update=forms.BooleanField(required=False,initial=False)
+
+    def __unicode__(self):
+        return self.filename
 
 
 # Images and/or cfg files are uploaded as .zip files
@@ -34,7 +41,6 @@ class FileUploadForm(ModelForm):
 # Zip files can hold cfgs, stimulus-files or a mix of file types
 class ZipUpload(models.Model):
     zip=models.FileField(upload_to=settings.ZIP_TMP)
-    #group=models.CharField(max_length=100)
     upload_date=models.DateTimeField(auto_now_add=True)
     upload_user=models.CharField(max_length=100)
     study=models.ForeignKey('exp.Study',blank=True,null=True,on_delete=models.CASCADE)

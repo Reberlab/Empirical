@@ -32,24 +32,23 @@ INSTALLED_APPS = (
     'filer',
 )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    #'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    #'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-)
+]
 
 ROOT_URLCONF = 'empirical.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')]
-        ,
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -98,7 +97,8 @@ USE_L10N = True
 
 USE_TZ = True
 
-LOGIN_URL='/login/'
+LOGIN_URL='/accounts/login/'
+#LOGIN_REDIRECT_URL = '/home/'
 
 VERSION="Empirical 0.4 July 2018"
 
@@ -114,6 +114,10 @@ STATIC_URL = '/static/'
 MEDIA_URL = '/images/'
 MEDIA_ROOT = os.path.join(BASE_DIR,'images/')
 ZIP_TMP = 'zip_tmp/'
+
+# The filer index view will automatically clean up ZIP_TMP deleting older files
+# this is the maximum number to be kept on disk
+ZIP_RETAIN = 20
 
 # Security values
 SECURITY_UPLOAD_MIN_TIME = 2.0

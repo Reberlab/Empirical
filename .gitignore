@@ -4,6 +4,7 @@ images/
 db.sqlite3
 empirical/local_settings.py
 archive/
+migrations/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

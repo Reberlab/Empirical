@@ -5,11 +5,26 @@
 
     <h2>Upload links</h2>
 
-    <p><a href="{% url 'prep_upload' %}">Upload Experiment, .zip file with cfgs and/or stimuli</a></p>
+{#    <p><a href="{% url 'prep_upload' %}">Upload Experiment, .zip file with cfgs and/or stimuli</a></p> #}
     <p><a href="{% url 'upload_images' %}">Upload Stimuli via .zip file</a></p>
+    <p><a href="{% url 'filer_add' %}">Upload file to database</a></p>
+
+    <h2>File Database</h2>
+    <table>
+    <tr><th>File name</th><th>User</th><th>Latest Version</th><th>Links</th><th>Upload date</th><th>Notes</th></tr>
+    {% for i in file_list %}
+        <tr>
+        <td><a href="{% url 'filer_versions' i.1 %}">{{ i.1 }}</a></td>
+        <td align="center">{{ i.0 }}</td>
+        <td align="center">{{ i.2 }}</td>
+        <td><a href="{% url 'filer_add' i.1 %}">Update</a> <a href="{% url 'filer_serve' i.1 %}">Show</a></td>
+        <td>{{ i.3 }}</td>
+        <td>{{ i.4 }}</td>
+        </tr>
+    {% endfor %}
+    </table>
 
     <h2>Stimulus files stored</h2>
-
     <h2>Images</h2>
     <table>
     <tr><th>Directory name</th><th>Number of files</th><th>First 25 files</th></tr>
@@ -30,29 +45,16 @@
     </table>
 
     <h2>Zip_tmp contents</h2>
-    <p>Link to cleanup zip tmp files goes here</p>
     <table>
-    <tr><th>File name</th></tr>
+    <tr><th>File name</th><th>Creation date</th><th></th></tr>
     {% for i in tmp %}
         <tr>
-        <td>{{ i }}</td>
+        <td>{{ i.1 }}</td>
+        <td>{{ i.0 }} </td>
+        <td>{{ i.2 }}</td>
         </tr>
     {% endfor %}
     </table>
 
-    <h2>Database</h2>
-    <table>
-    <tr><th>File name</th><th>User</th><th>Upload date</th><th>Size</th></tr>
-    {% for i in file_list %}
-        <tr>
-        <td>{{ i.filename }}</td>
-        <td>{{ i.upload_user }}></td>
-        <td>{{ i.upload_date }}</td>
-        <td>{{ i.contents.length }}</td>
-        </tr>
-    {% endfor %}
-    </table>
-
-
-
+    <p>Older .zip files from uploads or downloads are deleted automatically.</p>
 {% endblock %}
