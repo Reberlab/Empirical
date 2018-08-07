@@ -164,16 +164,25 @@ class Report(models.Model):
     sessionKey=models.ForeignKey('Session',on_delete=models.CASCADE)
     eventType=models.CharField(max_length=100)
     uploadDate=models.DateTimeField(auto_now_add=True)
+    workerId=models.CharField(max_length=100)
+    appName=models.CharField(max_length=100)
+    appVersion=models.IntegerField(null=True,blank=True)
     dataLog=models.TextField()
-    # app, ip other upload tracking information?
 
     def __unicode__(self):
         return self.sessionToken+'-'+self.eventType
 
+    def appNameVer(self):
+        if self.appVersion == None:
+            return('%s (none)' % self.appName)
+        else:
+            return("%s v%d" % (self.appName, self.appVersion))
+
+
 class ReportForm(ModelForm):
     class Meta:
         model=Report
-        fields=['sessionToken', 'eventType', 'dataLog']
+        fields=['sessionToken', 'eventType', 'appName', 'workerId', 'dataLog']
 
 
 ############################ Tracking data downloads

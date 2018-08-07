@@ -71,7 +71,7 @@ def experiment_data(request, expNumber):
     for i in s:
         r = Report.objects.filter(sessionKey=i).order_by('-uploadDate')
         for j in r:
-            reports.append([i.sessionToken,j.pk,j.eventType,j.uploadDate,j.dataLog[:256]])
+            reports.append([i.sessionToken,j.pk,j.eventType,j.appNameVer(),j.workerId,j.uploadDate,j.dataLog[:256]])
             if j.eventType not in event_types:
                 event_types.append(j.eventType)
     event_types.sort()

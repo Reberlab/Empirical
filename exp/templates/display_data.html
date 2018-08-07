@@ -9,11 +9,14 @@
         <hr>
         <p>{{ reports|length }} report events found</p>
         <table>
-        <tr><th>Id</th><th>Type</th><th>Date</th><th>Content</th></tr>
-        {% for d in reports %}
+        <tr><th>Id</th><th>Type</th><th>WorkerId</th><th>Exp App</th><th>Date</th><th>Content</th></tr>
+        {% for d in reports reversed %}
             <tr>
-            <td valign="top" align="center">{{ d.pk }}<br><a href="{% url 'download_session' session.sessionToken reports.0.pk %}">Download File</a></td>
-            <td valign="top" align="center">{{ d.eventType }}</td> <td valign="top">{{ d.uploadDate }}</td>
+            <td valign="top" align="center">{{ d.pk }}<br><a href="{% url 'download_session' session.sessionToken d.pk %}">Download File</a></td>
+            <td valign="top" align="center">{{ d.eventType }}</td>
+            <td align="center">{{ d.workerId }}</td>
+            <td align="center">{{ d.appName }}</td>
+            <td valign="top">{{ d.uploadDate }}</td>
             <td><pre>{{ d.dataLog|slice:":1000" }}</pre></td>
             </tr>
         {% endfor %}

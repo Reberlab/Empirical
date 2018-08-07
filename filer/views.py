@@ -117,7 +117,7 @@ def filer_versions(request,filename='',version=0):
     if filename=='':
         return render(request, 'filer_error.html', {'name': 'Versions of null filename', 'version': ''})
 
-    db_files=Filer.objects.filter(filename=filename)
+    db_files=Filer.objects.filter(filename=filename).order_by('-version')
     version_list=[]
     for i in db_files:
         version_list.append([i.version,i.upload_user,i.upload_date,i.notes,str(i.contents[:256])])

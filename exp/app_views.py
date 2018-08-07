@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import render
 from exp.models import Session, Report, ReportForm, Experiment, Security
+from filer.models import Filer
 
 # from datetime import date, datetime, timedelta
 from django.conf import settings
@@ -56,7 +57,7 @@ def empirical_error(msg):
 def xml_string(xmldict):
     r="<root xmlns:Empirical=\"https://www.reberlab.org/\">\n"
     for i in xmldict.keys():
-        r=r+"<%s>%s</%s>\r\n" % (i,xmldict[i],i)
+        r=r+"<%s>%s\n</%s>\r\n" % (i,xmldict[i],i)
     r=r+"\n</root>\n"
     return r
 
@@ -245,12 +246,15 @@ def newstart_session(request, groupToken, workerId=''):
 
 # return_status() reports back on the latest status report for that sessionToken, used for continuing/restarting
 def return_status(request, sessionToken, workerId=''):
-    try:
-        reports = Report.objects.filter(sessionToken=sessionToken,eventType='status').order_by('-uploadDate') # returns last status
-    except:
-        return HttpResponse('None') # no status is available, no data for this session yet
-    if not reports.exists():
-        return HttpResponse('None') # no status reports
+    if workerId=='': # returns last status for this token w/o workerId checking
+        reports = Report.objects.filter(sessionToken=sessionToken,eventType='status').order_by('-uploadDate')
+        if not reports.exists():
+            return HttpResponse('None')  # no status is available, no data for this session yet
+    else:
+        # if worker id is set, return their prior status
+        reports = Report.objects.filter(sessionToken=sessionToken,eventType='status',workerId=workerId).order_by('-uploadDate')
+        if not reports.exists():
+            return HttpResponse('None')  # no status is available, no data for this session yet
 
     # wrap report in XML to include the timestamp and time since
     status_xml = {}
@@ -261,17 +265,17 @@ def return_status(request, sessionToken, workerId=''):
     status_response=xml_string(status_xml)
 
     # check to make sure workerId matches, necessary if recycle is set
-    if workerId!='':
-        starts = Report.objects.filter(sessionToken=sessionToken,eventType='start').order_by('-uploadDate')
-        for s in starts:
-            if s.dataLog==workerId:
-                if s.uploadDate<reports[0].uploadDate: # workerid matches and status came after start event
-                    return HttpResponse(status_response)
-                else:
-                    return HttpResponse('None') # this is the start event for this session, status was from prior
+    #if workerId!='':
+    #    starts = Report.objects.filter(sessionToken=sessionToken,eventType='start').order_by('-uploadDate')
+    #    for s in starts:
+    #        if s.dataLog==workerId:
+    #            if s.uploadDate<reports[0].uploadDate: # workerid matches and status came after start event
+    #                return HttpResponse(status_response)
+    #            else:
+    #                return HttpResponse('None') # this is the start event for this session, status was from prior
         # technically this line shouldn't be reached since there should be a start event for workerid
         # but just in case, we'll simply return None if there was no start event
-        return HttpResponse('None')
+    #    return HttpResponse('None')
 
     return HttpResponse(status_response)
 
@@ -324,9 +328,18 @@ def report(request, sessionToken, workerid=''):
             except:
                 # not a valid session, maybe don't save?
                 return HttpResponse(empirical_error('Invalid session token %s' % sessionToken))
+
             # here should check how long ago the token was given out or started and disallow data too long after start
             security_ok=security_check(sessionToken,report_form.cleaned_data['eventType'])
             if security_ok:
+                # set the experimental app version and name information
+                r.appName = r.appName.split('/')[-1]
+                f = Filer.objects.filter(filename=r.appName).order_by('-version')  # get the final part of the URL
+                if f.exists():
+                    r.appVersion = f[0].version
+                else:
+                    r.appVersion = 0
+
                 if r.eventType=='private': # wrap content in private tags
                     report_xml={}
                     ip_addr=get_client_ip(request)
@@ -334,7 +347,7 @@ def report(request, sessionToken, workerid=''):
                     report_xml['Empirical:privatedata'] = "IP address: %s\n%s" % (ip_addr,r.dataLog)
                     r.dataLog = wrapped_report
                     r.save()
-                elif r.eventType=='status': # no xml wrapping on status events
+                elif r.eventType=='status': # no xml wrapping on status events, save raw text
                     r.save()
                 else:
                     report_xml={}
@@ -347,6 +360,10 @@ def report(request, sessionToken, workerid=''):
                         else:
                             workerid=start_event[0].dataLog
                     report_xml['Empirical:config']=r.sessionKey.configFile
+
+                    # look for the experiment app in the file db and update the version number if it exists
+                    # note, linking is not done here by ForeignKey, just str to keep records if db gets out of sync somehow
+                    report_xml['Empirical:appInfo']="Applet name: %s\nVersion: %d" % (app,r.appVersion)
                     if r.eventType == 'private':  # wrap the data into the private section
                         report_xml['Empirical:privatedata'] = "WorkerId: %s\nIP address: %s\n%s" % (workerid, ip_addr, r.dataLog)
                     else: # typical format

@@ -5,6 +5,7 @@ db.sqlite3
 empirical/local_settings.py
 archive/
 migrations/
+*/migrations/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
