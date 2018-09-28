@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
-from exp.models import Session, Report, ReportForm, Study, StudyForm, Security, ConfigForm, Experiment, ExperimentForm
+from exp.models import Session, Report, ReportForm, Study, StudyForm, Security, ConfigForm, Experiment, ExperimentForm, Participant, ParticipantForm
 from filer.models import Filer
 from datetime import date, datetime
 import time
@@ -252,6 +252,75 @@ def security_list(request):
     # show all security events in the db
     s=Security.objects.all()
     return render(request, 'security_event_list.html', {'event_list':s})
+
+
+# Participant table views
+
+# URL redirects -- participant/ (=all) (participants.html)
+#  -- participant/<tag> (one_participant.html)
+# -- updateparticipants (participant_db_report.html)
+
+@login_required
+def participant_table(request):
+    # show all the participants with links to edit by form
+    # show abbreviated list of data links?
+    p = Participant.objects.all()
+    return render(request, 'participants.html', {'p':p })
+
+# this shouldn't be called with name==''...
+@login_required
+def one_participant(request, name=''):
+    # show/edit single participant record
+    try:
+        p=Participant.objects.get(tag=name)
+    except:
+        return render(request, 'Object_not_found.html', {'token': name, 'type': 'Participant'})
+
+    if request.method=="POST":
+        # add the new config element to the db
+        form=ParticipantForm(request.POST, instance=p)
+        if form.is_valid():
+            c = form.save()
+            # return render(request, 'display_config.html', {'session': c, 'reports':None})
+            return redirect('one_participant', name=p.tag)
+        else:
+            return HttpResponse("Unable to parse Participant form edit")
+
+    # form collects the participant data from the db
+    form=ParticipantForm(instance=p)
+    # collect links to all their data records
+    data=Report.objects.filter(workerId=p.tag)
+
+    return render(request,'one_participant.html', {'p': p, 'form': form, 'data': data})
+
+# Log all the creations and report - ?
+@login_required
+def participants_update(request):
+    # check data table and find all participants not represented in the participant db and add them
+    log=[]
+    r=Report.objects.all()
+    counts=[0,0,0]
+    for i in r:
+        if i.workerId!='' and \
+                i.workerId[:4].casefold()!='None'.casefold() and \
+                i.workerId[:4].casefold()!='NoId'.casefold():
+            # this is a real workerId
+            try:
+                # if this succeeds, the participant is already in the db
+                p = Participant.objects.get(tag=i.workerId)
+                log.append("Matched: %s" % i.workerId)
+                counts[1]=counts[1]+1
+            except:
+                # create new participant record
+                p = Participant.objects.create(tag=i.workerId)
+                p.save()
+                log.append("Added: %s" % i.workerId)
+                counts[2]=counts[2]+1
+        else:
+            counts[0]=counts[0]+1
+    log.sort()
+    return render(request,'participant_db_update.html', {'log': log, 'counts': counts})
+
 
 # Potential admin/cleanup views
 # 1. Find/correct orphan sessions

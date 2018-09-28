@@ -263,20 +263,6 @@ def return_status(request, sessionToken, workerId=''):
     dt = timezone.now() - reports[0].uploadDate
     status_xml['Empirical:timesince'] = "%.4f" % (dt.seconds / 3600.0)
     status_response=xml_string(status_xml)
-
-    # check to make sure workerId matches, necessary if recycle is set
-    #if workerId!='':
-    #    starts = Report.objects.filter(sessionToken=sessionToken,eventType='start').order_by('-uploadDate')
-    #    for s in starts:
-    #        if s.dataLog==workerId:
-    #            if s.uploadDate<reports[0].uploadDate: # workerid matches and status came after start event
-    #                return HttpResponse(status_response)
-    #            else:
-    #                return HttpResponse('None') # this is the start event for this session, status was from prior
-        # technically this line shouldn't be reached since there should be a start event for workerid
-        # but just in case, we'll simply return None if there was no start event
-    #    return HttpResponse('None')
-
     return HttpResponse(status_response)
 
 
@@ -333,6 +319,7 @@ def report(request, sessionToken, workerid=''):
             security_ok=security_check(sessionToken,report_form.cleaned_data['eventType'])
             if security_ok:
                 # set the experimental app version and name information
+                # note, linking is not done here by ForeignKey, just str to keep records if db gets out of sync somehow
                 r.appName = r.appName.split('/')[-1]
                 f = Filer.objects.filter(filename=r.appName).order_by('-version')  # get the final part of the URL
                 if f.exists():
@@ -352,22 +339,12 @@ def report(request, sessionToken, workerid=''):
                 else:
                     report_xml={}
                     ip_addr=get_client_ip(request)
-                    if workerid=='':
-                        # find workerid from recent start event
-                        start_event=Report.objects.filter(sessionToken=sessionToken, eventType='start').order_by('-uploadDate')
-                        if len(start_event)==0:
-                            workerid='None, no start event found'
-                        else:
-                            workerid=start_event[0].dataLog
                     report_xml['Empirical:config']=r.sessionKey.configFile
-
-                    # look for the experiment app in the file db and update the version number if it exists
-                    # note, linking is not done here by ForeignKey, just str to keep records if db gets out of sync somehow
-                    report_xml['Empirical:appInfo']="Applet name: %s\nVersion: %d" % (app,r.appVersion)
+                    report_xml['Empirical:appInfo']="Applet name: %s\nVersion: %d" % (r.appName,r.appVersion)
                     if r.eventType == 'private':  # wrap the data into the private section
-                        report_xml['Empirical:privatedata'] = "WorkerId: %s\nIP address: %s\n%s" % (workerid, ip_addr, r.dataLog)
+                        report_xml['Empirical:privatedata'] = "WorkerId: %s\nIP address: %s\n%s" % (r.workerId, ip_addr, r.dataLog)
                     else: # typical format
-                        report_xml['Empirical:privatedata']="WorkerId: %s\nIP address: %s" % (workerid,ip_addr)
+                        report_xml['Empirical:privatedata']="WorkerId: %s\nIP address: %s" % (r.workerId, ip_addr)
                         report_xml['Empirical:datalog']=r.dataLog
                     wrapped_report=xml_string(report_xml)
                     r.dataLog=wrapped_report

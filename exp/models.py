@@ -184,6 +184,37 @@ class ReportForm(ModelForm):
         model=Report
         fields=['sessionToken', 'eventType', 'appName', 'workerId', 'dataLog']
 
+############################ Participants table
+
+# The preliminary version of the Participant table is aimed at Experimenter use to contact volunteers
+#   Later this should inherit from the Django AbstractUser base (to be able to log in, change prefs, etc)
+# For now any Participant preferences will have to be set by an Experimenter
+# No easy way yet to convert mTurk participants into direct contact ones
+
+class Participant(models.Model):
+    tag=models.CharField(max_length=100,blank=False)                   # this is the id by which the participant is referenced in the db
+    name=models.CharField(max_length=256,blank=True,default='')        # real name for any additional, outside communication
+    email=models.EmailField(max_length=256,blank=True,default='')      # Email contact info
+    addedDate=models.DateTimeField(auto_now_add=True)                  # Date when participant added to db
+
+    # Preference fields
+    # contact style: None (no more experiments), ok to Email when available, or Opt-in through on Participant dashboard (when available)
+    contact_type=models.CharField(max_length=1,choices=(('N','None'),('E','Email'),('O','Opt-in')),default='N')
+
+    # ok to share data across Experimenters (e.g., mainly for when projects have separate IRBs) -- this might need to be experiment specific
+    data_share=models.CharField(max_length=1,choices=(('N','None'),('A','All'),('L','Limited')),default='N')
+
+    # a generic arbitrary notes field for experimenters to note anything special about the participant
+    notes=models.TextField(blank=True,default='')
+
+    # Demographic fields are not included for now.  I think they'll be better implemented via a link to a study that collected them
+    # Payment method information could also be implemented here later
+
+class ParticipantForm(ModelForm):
+    class Meta:
+        model=Participant
+        fields=['tag', 'name', 'email', 'contact_type', 'data_share','notes']
+
 
 ############################ Tracking data downloads
 

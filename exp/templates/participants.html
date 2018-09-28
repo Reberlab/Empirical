@@ -1,0 +1,24 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <h1>Participants</h1>
+
+    <table>
+    <tr><th>Participant workerId</th><th>Added date</th><th>Name</th><th>Email</th><th>Contact</th><th>Data Share</th><th>Notes</th></tr>
+    {% for i in p %}
+        <tr><td><a href="{% url 'one_participant' i.tag  %}">{{ i.tag }}</a></td>
+            <td>{{ i.addedDate }}</td>
+            <td>{{ i.name }}</td>
+            <td>{{ i.email }}</td>
+            <td>{{ i.contact_type }}</td>
+            <td>{{ i.data_share }}</td>
+            <td>{{ i.notes }}</td></tr>
+    {% endfor %}
+    </table>
+
+    <a href="{% url 'participant_update' %}">Sync participant db to data table</a>
+
+    <p><a href="{% url 'participant_table' %}">Return to Participants</a></p>
+
+
+{%  endblock %}

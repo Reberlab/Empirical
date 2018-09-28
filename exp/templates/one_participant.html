@@ -1,0 +1,35 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <h1>Participant Information</h1>
+
+    <ul>
+    <li>Tag: {{ i.tag }}</li>
+    <li>Name: {{ i.name }}</li>
+    <li>Date added: {{ i.addedDate }}</li>
+    <li>Email: {{ i.email }}</li>
+    <li>Contact type: {{ i.contact_type }}</li>
+    <li>Share data: {{ i.data_share }}</li>
+    <li>Notes: {{ i.notes }}</li>
+    </ul>
+
+    <h2>Edit information</h2>
+    <form action="#" method="post" enctype="multipart/form-data">
+        {% csrf_token %} {{ form.as_p }}
+        <input type="submit" value="Save" />
+    </form>
+
+    <p><a href="{% url 'participant_table' %}">Return to Participants</a></p>
+
+    <h2>Data records</h2>
+    <table>
+    <tr><th>Datalog record</th><th>Type</th><th>Date</th><th>App Name</th></tr>
+    {% for i in data %}
+        <tr><td><a href="{% url 'session_data' i.sessionToken %}">{{ i.sessionToken }} {{ i.pkid }}</a></td>
+            <td>{{ i.eventType }}</td>
+            <td>{{ i.uploadDate }}</td>
+            <td>{{ i.appName }}</td>
+    {% endfor %}
+    </table>
+
+{%  endblock %}

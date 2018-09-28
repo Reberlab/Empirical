@@ -26,6 +26,9 @@ urlpatterns = [
     path('data/file/exp/<int:expNumber>/since/<int:since>', views.download_exp_data,name='download_exp_since'),
     path('data/file/session/<str:sessionToken>',views.download_session_data,name='download_session'),
     path('data/file/session/<str:sessionToken>/<int:pkid>',views.download_session_data,name='download_session'),
+    path('participants/',views.participant_table,name='participant_table'),
+    path('participants/<str:name>', views.one_participant, name='one_participant'),
+    path('updateparticipants/', views.participants_update, name='participant_update'),
     path('security/',views.security_list,name='security_list'),
 
     # App urls for running experiments to communicate with server

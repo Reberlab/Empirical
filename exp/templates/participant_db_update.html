@@ -1,0 +1,18 @@
+{% extends "base_report.html" %}
+
+{% block content %}
+    <h1>Participants database update</h1>
+
+    <ul>
+        <li>{{ counts.0 }} anonymous (noid) participants</li>
+        <li>{{ counts.1 }} matched participants in database</li>
+        <li>{{ counts.2 }} new participants added</li>
+     </ul>
+
+    <ul>
+    {% for i in log %}
+        <li>{{ i }}</li>
+    {% endfor %}
+    </ul>
+
+{%  endblock %}
