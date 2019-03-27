@@ -26,7 +26,9 @@
         <h3>Reporting on upload {{ reports.0.pk }}</h3>
         <p> Type: {{ reports.0.eventType }} at {{ reports.0.uploadDate }}</p>
         <a href="{% url 'download_session' session.sessionToken reports.0.pk %}">Download File</a>
-        <pre>{{ reports.0.dataLog }}</pre>
+        <p> <pre>
+        {{ reports.0.dataLog }}
+        </pre> </p>
     {% endif %}
 
 {% endblock %}

@@ -1,4 +1,4 @@
-__author__ = 'drlemur'
+__author__ = 'Paul J. Reber'
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required

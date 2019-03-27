@@ -1,4 +1,4 @@
-__author__ = 'drlemur'
+__author__ = 'Paul J. Reber'
 
 from django.urls import path
 from . import views
