@@ -14,11 +14,20 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ALLOWED_HOSTS = []
-# default database settings could go here too
 
-# Installation settings
-from .local_settings import *
+
+# SECURITY WARNING: don't run with debug turned on in production!
+#  PRODUCTION true for online deployment, set False for local development server testing
+DEBUG = True
+PRODUCTION = False
+
+if PRODUCTION:
+    from .local_settings import *
+else:
+    # low security values for local development
+    SECRET_KEY = 'databasesecretkeygoeshere'
+    ALLOWED_HOSTS = ['127.0.0.1']
+
 
 # Application definition
 INSTALLED_APPS = (
@@ -64,24 +73,26 @@ TEMPLATES = [
 WSGI_APPLICATION = 'empirical.wsgi.application'
 
 
-# Database
-
-# Will need to be adjusted for public/private
-# Real DB info will go in local_settings.py, default to local sqlite if doesn't exist
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+# Database, RDS/MySql for online deployment, local sqlite for development
+if PRODUCTION:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'empirical',
+            'HOST': 'empirical-db.cluster-ctdatekjj4bm.us-west-2.rds.amazonaws.com',
+            'USER': 'dbadmin',
+            'PASSWORD': SECRET_KEY,
+            # PORT 3306, myseql-5-6
+        }
     }
-    #'default': {
-    #    'ENGINE': 'django.db.backends.mysql',
-    #    'NAME': 'empirical',
-    #    'HOST': 'dbtest.reberlab.org',
-    #    'USER': 'empirical_db',
-    #    'PASSWORD': 'development_testing_only'
-        # PORT 3306, myseql-5-6
-    #}
-}
+    CSRF_COOKIE_DOMAIN='.reberlab.org'
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 
 
 # Internationalization
@@ -100,15 +111,14 @@ USE_TZ = True
 LOGIN_URL='/accounts/login/'
 #LOGIN_REDIRECT_URL = '/home/'
 
-VERSION="Empirical 0.4 July 2018"
+VERSION="Empirical 0.41 April 2019"
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.8/howto/static-files/
-
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR,"static"),
-)
+if PRODUCTION:
+    STATIC_ROOT = os.path.join(BASE_DIR,'static')
+else:
+    STATICFILES_DIRS = (
+        os.path.join(BASE_DIR,"static"),
+    )
 
 STATIC_URL = '/static/'
 MEDIA_URL = '/images/'

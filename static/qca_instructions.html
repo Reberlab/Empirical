@@ -16,11 +16,7 @@
     </style>
 </head>
 <body>
-<script>
-    function launch(form) {
-        alert("URL: http://reberlab/file/group?name=" + form.userid.value);
-    }
-</script>
+
 
 <div id="header">
     <h1>QCA: The Quick Cognitive Assessment</h1>
@@ -34,7 +30,6 @@
     It’s designed to be repeatable so that scores on each test can be tracked over time.</p>
 <p>This instruction set is aimed at the first time through the tests.
 </p>
-    <p>If you want to participate, use the form at the bottom to launch the app.</p>
 </div>
 
 <div id="content" style="font-size:150%;">
@@ -186,12 +181,7 @@
     <p>Your recent performance will be reported to you as you go and you can see how these different
     cognitive functions change across the day and across different days.
     </p>
-<form name="Launch" action="http://127.0.0.1:8000/file/show/QCA" target="_blank">
-    <input type="hidden" name="group" value="ad7c4a3082596a95">
-    Enter user id:
-    <input type="text" name="name" value=""><p>Submitting will launch QCA in a new window.</p>
-    <input type="button" name="submit" value="Submit">
-</form>
+
 
 </div>
 

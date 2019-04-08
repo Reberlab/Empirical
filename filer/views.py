@@ -125,7 +125,6 @@ def filer_versions(request,filename='',version=0):
     return render(request, 'filer_versions.html', {'versions': version_list})
 
 # return the raw file via http
-@login_required
 def filer_serve(request,filename='',version=0):
     # return the file from the database if it exists
     if version==0:
