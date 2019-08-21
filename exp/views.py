@@ -131,10 +131,13 @@ def edit_experiment(request, expNumber=0, studyNumber=0):
     else:
         e=None
 
-    try:
-        parent_study=Study.objects.get(pk=studyNumber)
-    except:
-        return render(request, 'Object_not_found.html', {'token': studyNumber, 'type': 'Study'})
+    if e:
+        parent_study=e.study
+    else:
+        try:
+            parent_study=Study.objects.get(pk=studyNumber)
+        except:
+            return render(request, 'Object_not_found.html', {'token': studyNumber, 'type': 'Study'})
 
     # edit the experiment object
     if request.method=="POST":

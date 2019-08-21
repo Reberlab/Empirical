@@ -261,7 +261,7 @@ def return_status(request, sessionToken, workerId=''):
     status_xml['Empirical:status'] = reports[0].dataLog[:2048]  # datalog length is limited to returning 2k bytes to avoid abuse
     status_xml['Empirical:uploaddate'] = reports[0].uploadDate
     dt = timezone.now() - reports[0].uploadDate
-    status_xml['Empirical:timesince'] = "%.4f" % (dt.seconds / 3600.0)
+    status_xml['Empirical:timesince'] = "%.4f" % (dt.total_seconds() / 3600.0)
     status_response=xml_string(status_xml)
     return HttpResponse(status_response)
 

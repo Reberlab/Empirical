@@ -111,7 +111,7 @@ USE_TZ = True
 LOGIN_URL='/accounts/login/'
 #LOGIN_REDIRECT_URL = '/home/'
 
-VERSION="Empirical 0.41 April 2019"
+VERSION="Empirical 0.42 Aug 2019"
 
 if PRODUCTION:
     STATIC_ROOT = os.path.join(BASE_DIR,'static')

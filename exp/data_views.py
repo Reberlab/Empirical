@@ -65,45 +65,22 @@ def experiment_data(request, expNumber):
         return render(request, 'Object_not_found.html', {'token': expNumber, 'type': "Experiment"})
 
     s = Session.objects.filter(exp=e)
-    reports=[]
     event_types=[]
-    count=0
-    for i in s:
-        r = Report.objects.filter(sessionKey=i).order_by('-uploadDate')
-        for j in r:
-            reports.append([i.sessionToken,j.pk,j.eventType,j.appNameVer(),j.workerId,j.uploadDate,j.dataLog[:256]])
-            if j.eventType not in event_types:
-                event_types.append(j.eventType)
+    log=""
+    reports=[]
+    r = Report.objects.filter(sessionKey__in=s) # a "Q-form" to get all the reports for all sessions keys
+    for j in list(r.order_by('-uploadDate')): # sort into reverse date order
+        log=log+(" added %d; " % j.pk)
+        reports.append([j.sessionToken,j.pk,j.eventType,j.appNameVer(),j.workerId,j.uploadDate,j.dataLog[:256]])
+        if j.eventType not in event_types:
+            event_types.append(j.eventType)
     event_types.sort()
     # list download objects
     d=Download.objects.filter(experiment=e)
 
     return render(request, 'display_exp_data.html', {'exp': e, 'reports': reports,
                                                      'parent': e.study, 'events': event_types,
-                                                     'downloads': d})
-
-# Is this ever used?  Data is typically downloaded by Exp (or occasionally by Session)
-#  Maybe this should just show the total number of records and downloads/existing data files for
-#  the experiments in this Study
-# @login_required
-# def study_data(request, studyNumber=0):
-#     start = time.time()
-#     try:
-#         s = Study.objects.get(pk=studyNumber)
-#     except:
-#         return render(request, 'Object_not_found.html', {'token': studyNumber, 'type': "Study"})
-#
-#     e = Experiment.objects.filter(study=s.pk)
-#     count=[]
-#     for i in e:
-#         exp_count=0
-#         sessions = Session.objects.filter(exp=i)
-#         for j in sessions:
-#             exp_count=exp_count + Report.objects.filter(sessionKey=j).count()
-#         count.append(exp_count)
-#     done = time.time()
-#     report_string="Time to count data: %.2fs" % (done-start)
-#     return render(request, 'study_data.html', {'study': s, 'exp_list': zip(e,count), 'log': report_string})
+                                                     'downloads': d, 'log': log})
 
 # construct a unique .txt file output name
 def unique_txt(fn_list,cfg_name,event_type):
