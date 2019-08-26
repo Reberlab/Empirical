@@ -3,7 +3,7 @@
 {%  block content %}
     <h1>Study <b>{{ study.name }}</b> </h1>
     <p>Created by {{ study.user }} on {{ study.creationDate }}</p>
-    <p>Applet to run with this study {{ study.appletName }}</p>
+    <p>Applet to run with this study: {{ study.appletName }}, {{ filer_message }}</p>
     <p><a href="{% url 'edit_study' study.id%}">Edit this Study</a></p>
     <table>
     <tr><th>Experiment name</th><th>Created by</th><th>URL Token</th><th>Creation date</th><th>Available Sessions</th><th>Total sessions</th></tr>

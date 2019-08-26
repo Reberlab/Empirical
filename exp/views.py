@@ -33,7 +33,14 @@ def one_study(request, studyNumber=0):
     except:
         return render(request, 'Object_not_found.html', {'token': studyNumber, 'type': 'Study'})
 
-    e = Experiment.objects.filter(study=s.pk)
+    # to do: check for missing app name in filer and pass warning
+    f = Filer.objects.filter(filename=s.appletName).order_by('-version')
+    if not f:
+        filer_message="Warning, not in filer db"
+    else:
+        filer_message=("Version %d" % f[0].version)
+
+    e = Experiment.objects.filter(parent_study=s.pk)
     # sort this to group by experimenter
     exp_list=[]
     if e.exists():
@@ -41,7 +48,7 @@ def one_study(request, studyNumber=0):
             exp_list.append([i.user,i.pk,i])
         exp_list.sort()
         (users, pkids, exp_list) = zip(*exp_list)
-    return render(request, 'one_study.html', {'study': s, 'exp_list': exp_list})
+    return render(request, 'one_study.html', {'study': s, 'exp_list': exp_list, 'filer_message': filer_message})
 
 
 # edit_study -- update for new study fields
@@ -60,19 +67,30 @@ def edit_study(request, studyNumber=0):
         if study_form.is_valid():
             s=study_form.save(commit=False)
             s.user=request.user.username
-            try:
-                consent=json.loads(s.consentJSON) # test the JSON parsing of the consent form info
-            except:
-                return render(request, 'bad_consent_form.html', {'consent': s.consentJSON})
+            json_string = s.consentJSON.replace("&quot;", "\"")
+            # JSON test parsing disabled for now, use consent JSON as own risk
+            #try:
+            #    consent=json.loads(json_string) # test the JSON parsing of the consent form info
+            #except:
+            #    return render(request, 'bad_consent_form.html', {'consent': json_string+"***"+s.consentJSON})
+            s.consentJSON = json_string
             s.save()
+            if study_form.cleaned_data['first_experiment']!='':
+                e = Experiment.objects.create(name=study_form.cleaned_data['first_experiment'],
+                                              parent_study=s,
+                                              user=request.user.username)
+                e.create_token()
+                e.save()
             return redirect('one_study', studyNumber=s.pk)
         return HttpResponse("Bad study form")
 
     if s!=None:
-        form=StudyForm(instance=s)
+        #exps=Experiment.objects.filter(parent_study=s)
+        form=StudyForm(instance=s) #, initial={'current_experiment': exps})
+        form.fields['current_experiment'].queryset = Experiment.objects.filter(parent_study=s)
     else:
         form=StudyForm()
-
+        form.fields['current_experiment'].disabled=True
     return render(request,'edit_study.html', {'form': form})
 
 
@@ -85,7 +103,7 @@ def one_experiment(request, expNumber=0):
         return render(request, 'Object_not_found.html', {'token': expNumber, 'type': 'Experiment'})
 
     s = Session.objects.filter(exp=e.pk)
-    # construct list that follows the sessionlist in e.sessions, breaks up if numtokens>sessiontokens
+    # construct list that follows the sessionlist in e.sessions
     # extract order from session token string
     session_order={}
     count=0
@@ -99,11 +117,12 @@ def one_experiment(request, expNumber=0):
             d=timezone.make_aware(datetime(2, 1, 1, tzinfo = None), timezone.get_default_timezone())
         else:
             d=i.lastStarted
-        if i.sessionToken in session_order:
-            if session_order[i.sessionToken]<e.numTokens:
-                token_order.append((0, d, i))
-            else:
-                token_order.append((1, d, i))
+        if i.sessionToken in session_order:  # this allows some session to have been removed from the groupsessions list
+            token_order.append((0, d, i))
+            #if session_order[i.sessionToken]<e.numTokens:
+            #    token_order.append((0, d, i))
+            #else:
+            #    token_order.append((1, d, i))
         else:
             token_order.append((99999, d, i))
     if token_order!=[]:
@@ -112,14 +131,7 @@ def one_experiment(request, expNumber=0):
     else:
         session_list=[]
 
-    study=e.study
-    # Check if applet is in the file db
-    if Filer.objects.filter(filename=study.appletName).exists():
-        applet_url='http://%s/file/show/%s' % (request.get_host(),study.appletName)
-    else:
-        applet_url=request.build_absolute_uri(static(study.appletName))
-    link=e.link_url(applet_url)
-    return render(request, 'experiment_info.html', {'exp': e, 'sessions': session_list, 'parent': study, 'link': link})
+    return render(request, 'experiment_info.html', {'exp': e, 'sessions': session_list, 'link': e.link_url(request)})
 
 @login_required()
 def edit_experiment(request, expNumber=0, studyNumber=0):
@@ -132,7 +144,7 @@ def edit_experiment(request, expNumber=0, studyNumber=0):
         e=None
 
     if e:
-        parent_study=e.study
+        parent_study=e.parent_study
     else:
         try:
             parent_study=Study.objects.get(pk=studyNumber)
@@ -145,7 +157,7 @@ def edit_experiment(request, expNumber=0, studyNumber=0):
         if exp_form.is_valid():
             e=exp_form.save(commit=False)
             e.user=request.user.username
-            e.study=parent_study
+            e.parent_study=parent_study
             e.create_token()
             e.save()
             return redirect('one_experiment', expNumber="%d" % e.pk)
@@ -153,7 +165,7 @@ def edit_experiment(request, expNumber=0, studyNumber=0):
             return render(request, 'Object_not_found.html', {'token': expNumber, 'type': 'Experiment creation'})
 
     if e:
-        s = e.study
+        s = e.parent_study
         form = ExperimentForm(instance=e)
     else:
         try:

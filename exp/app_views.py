@@ -84,7 +84,7 @@ def start_session(request, groupToken, workerId=''):
     except:
         return HttpResponse(empirical_error('Invalid group token %s' % groupToken))
 
-    s=e.study
+    s=e.parent_study
     try:
         consent=s.consentJSON
     except:
@@ -93,7 +93,7 @@ def start_session(request, groupToken, workerId=''):
         except:
             return HttpResponse(empirical_error('Bad study linked to %s' % e.name))
 
-    session_list=e.groupSessions.split()[:e.numTokens] # sessionlist of tokens to be used
+    session_list=e.groupSessions.split() # trimming to numtokens deprecated [:e.numTokens]
     c=None
     has_prior = False
     demo_mode = False
@@ -144,16 +144,16 @@ def start_session(request, groupToken, workerId=''):
         # sort on lastUpdated
         config_list=session_order(e,session_list) # sorting needs to be done manually in the function above
 
-        # if no recycle, only return if lastUpdated is None
-        if e.recycle==False:
-            if config_list[0].lastStarted==None:
-                c = config_list[0]
-                session=c.sessionToken
-            else:
-                return HttpResponse(empirical_error('No tokens are available for %s' % e.name))
-        else:
-            c = config_list[0]
-            session = c.sessionToken
+        # if no recycle, only return if lastUpdated is None -- deprecating recycle Aug 2019
+        #if e.recycle==False:
+        #    if config_list[0].lastStarted==None:
+        #        c = config_list[0]
+        #        session=c.sessionToken
+        #    else:
+        #        return HttpResponse(empirical_error('No tokens are available for %s' % e.name))
+        #else:
+        c = config_list[0]
+        session = c.sessionToken
         # for new workers, create started datalog event
         r = Report(sessionToken=session,sessionKey=c,eventType='start',dataLog=workerId) # workerId stored in this event to catch re-use later
         r.save()
@@ -188,7 +188,7 @@ def newstart_session(request, groupToken, workerId=''):
     except:
         return HttpResponse(empirical_error('Invalid group token %s' % groupToken))
 
-    s=e.study
+    s=e.parent_study
     try:
         consent=s.consentJSON
     except:
@@ -197,7 +197,7 @@ def newstart_session(request, groupToken, workerId=''):
         except:
             return HttpResponse(empirical_error('Bad study linked to %s' % e.name))
 
-    session_list=e.groupSessions.split()[:e.numTokens] # sessionlist of tokens to be used
+    session_list=e.groupSessions.split()  # [:e.numTokens]
     c=None
     has_prior = False
     if workerId.lower()=='demo':

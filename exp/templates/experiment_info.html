@@ -4,30 +4,23 @@
     <h2>Experiment Name: {{ exp.name }}</h2>
     <ul>
     <li>Created by {{ exp.user }} on {{ exp.creationDate }}</li>
-    <li>Parent study {{ parent.name }}</li>
-    <li>Experiment app {{ parent.appletName }}</li>
+    <li>Parent study {{ exp.parent_study.name }}</li>
+    <li>Experiment app {{ exp.parent_study.appletName }}</li>
     <li>Group token {{ exp.groupToken }}</li>
-    <li>Recycle {{ exp.recycle }}</li>
-    <li>Require unique id {{ exp.unique_id }}</li>
     </ul>
     <h3>URL to experiment: <a href="{{ link }}" target="_blank">{{ link }}</a></h3>
     <h3><a href="{% url 'experiment_data' exp.pk %}">View/download data for this Experiment</a></h3>
     <ul>
-    <li><a href="{% url 'upload_into_exp' parent.pk exp.pk %}">Upload configuration zip file</a></li>
+    <li><a href="{% url 'upload_into_exp' exp.parent_study.pk exp.pk %}">Upload configuration zip file</a></li>
     <li><a href="{% url 'new_config' exp.pk %}">Manually add a new configuration file</a></li>
     <li><a href="{% url 'edit_experiment' exp.pk %}">Edit the settings for this experiment</a></li>
-    <li><a href="{% url 'one_study' parent.pk %}">Return to Study {{ parent.name }}</a></li>
+    <li><a href="{% url 'one_study' exp.parent_study.pk %}">Return to Study {{ exp.parent_study.name }}</a></li>
     </ul>
 
     <h3>Session information</h3>
     <table>
     <tr><th>Cfg Name</th><th>Token</th><th>Created on</th><th>Last Started</th></tr>
     {% for i in sessions %}
-        {% if forloop.counter <= exp.numTokens %}
-            <tr>
-        {% else %}
-            <tr bgcolor="#d3d3d3">
-        {% endif %}
         {% if i.sessionToken %}
             <td><a href="{% url 'one_session' i.sessionToken %}"> {{ i.name }} </a> </td>
         {% else %}

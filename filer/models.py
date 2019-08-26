@@ -59,17 +59,18 @@ class ZipUpload(models.Model):
 class ZipUploadForm(ModelForm):
     class Meta:
         model=ZipUpload
-        fields=['zip', 'study', 'exp', 'exp_restrict', 'exp_name', 'exp_recycle', 'exp_unique_id',
-                'image_dir', 'image_dir_choice']
+        fields=['zip', 'study', 'exp', 'exp_name', 'image_dir', 'image_dir_choice']
         labels= {'zip': 'Zip file to upload',
                  'exp': 'Experiment to add to',
-                 'exp_restrict': 'Restrict experiment to just new cfgs',
                  'exp_name': 'New Experiment name',
-                 'exp_recycle': 'Recycle (new)',
-                 'exp_unique_id': 'Require unique id (new)',
                  'image_dir_choice': 'Choose directory for images',
                  'image_dir': 'Enter image directory name'}
         widgets = {'study': forms.HiddenInput()}
+
+
+#'exp_restrict': 'Restrict experiment to just new cfgs',
+#'exp_recycle': 'Recycle (new)',
+#'exp_unique_id': 'Require unique id (new)',
 
 class ImageUploadForm(ModelForm):
     class Meta:

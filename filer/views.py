@@ -281,12 +281,12 @@ def upload_zip(request, studyNumber=0, expNumber=0):
             if zip_form.cleaned_data['exp']==None:
                 # create experiment object
                 e = Experiment.objects.create(name=zip_form.cleaned_data['exp_name'],
-                                              study=s,
-                                              recycle=zip_form.cleaned_data['exp_recycle'],
-                                              unique_id=zip_form.cleaned_data['exp_unique_id'],
-                                              user=request.user.username,
-                                              numTokens=0,
-                                              totalTokens=0)
+                                              parent_study=s,
+                                              user=request.user.username)
+                                              #recycle=zip_form.cleaned_data['exp_recycle'],
+                                              #unique_id=zip_form.cleaned_data['exp_unique_id'],
+                                              #numTokens=0,
+                                              #totalTokens=0)
                 e.create_token()
                 e.save()
                 unpack_log.append("Created Experiment %s" % e.name)

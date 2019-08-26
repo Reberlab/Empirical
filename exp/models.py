@@ -1,10 +1,9 @@
 from django.db import models
 from django.forms import ModelForm
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.templatetags.static import static
 
 import hashlib, time, random
 from django import forms
-
 
 ######################## Handling Studys (groups of Experiments)
 
@@ -14,43 +13,40 @@ class Study(models.Model):
 
     name=models.CharField(max_length=100)
     appletName=models.CharField(max_length=100)
-    consentJSON=models.TextField()
+    consentJSON=models.TextField(blank=True,default="{ \"consent_form\": {\"Title of Research Study\": \"TBA\", \"Investigator\": \"TBA\"}")
     participants=models.TextField() # this will hold a list of workerIds (e.g., from mTurk) to allow checking for repeat participants
 
-    def __unicode__(self):
+    public_title=models.CharField(max_length=255,blank=True,default="")
+    public_description=models.TextField(blank=True,default="")
+    homepage_visible=models.BooleanField(default=False)
+    current_experiment=models.ForeignKey('Experiment',blank=True,null=True,on_delete=models.CASCADE)
+
+    def __str__(self):
         return self.name
 
     def addParticipant(self,workerid,session):
         self.participants=self.participants+('%s:%s ' % (workerid,session))
         self.save()
 
-
-class StudyForm(ModelForm):
-    class Meta:
-        model = Study
-        fields = ['name', 'appletName', 'consentJSON' ]
-        labels = {'name': "Study name:",
-                  'appletName': "Name of applet to run experiment",
-                  'consentJSON':"Consent form in JSON:"}
-
 ########################## Handling Experiments (groups of cfg files)
 
 class Experiment(models.Model):
     # core definition of an experiment group
     name=models.CharField(max_length=100)
-    study=models.ForeignKey('Study',blank=True,null=True,on_delete=models.CASCADE)
+    parent_study=models.ForeignKey('Study',blank=True,null=True,on_delete=models.CASCADE)
     groupToken=models.CharField(max_length=100)
-    recycle=models.BooleanField(default=True)
-    unique_id=models.BooleanField(default=True)
+    #recycle=models.BooleanField(default=True)  -- these are deprecated Aug 2019, this logic handled in apps
+    #unique_id=models.BooleanField(default=True)
 
     groupSessions=models.TextField(default='')
-    numTokens=models.IntegerField(default=10, validators=[MaxValueValidator(300),MinValueValidator(1)])
-    totalTokens=models.IntegerField(default=10, validators=[MaxValueValidator(10000),MinValueValidator(1)])
+    # numtokens deprecated in Aug 2019, all tokens always available based on use
+    #numTokens=models.IntegerField(default=10, validators=[MaxValueValidator(300),MinValueValidator(1)])
+    #totalTokens=models.IntegerField(default=10, validators=[MaxValueValidator(10000),MinValueValidator(1)])
 
     user=models.CharField(max_length=100)
     creationDate=models.DateTimeField(auto_now_add=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name+':'+self.groupToken
 
     def create_token(self):
@@ -76,38 +72,58 @@ class Experiment(models.Model):
             self.numTokens=self.totalTokens
 
     # base should be constructed in the view that calls this to get the link
-    def link_url(self,base,workerid=''):
+    def link_url(self,request,workerid=''):
+        # Check if applet is in the file db
+        #if Filer.objects.filter(filename=self.parent_study.appletName).exists():
+        #    applet_url = 'http://%s/file/show/%s' % (request.get_host(), self.parent_study.appletName)
+        #else:
+        #    applet_url = request.build_absolute_uri(static(self.parent_study.appletName))
+
+        # Aug 2019 -- no longer checks the file is in the filer
+        applet_url = 'http://%s/file/show/%s' % (request.get_host(), self.parent_study.appletName)
         if workerid=='':
-            return "%s?group=%s" % (base,self.groupToken)
-        return "%s?group=%s&workerId=%s" % (base,self.groupToken,workerid)
+            return "%s?group=%s" % (applet_url,self.groupToken)
+        return "%s?group=%s&workerId=%s" % (applet_url,self.groupToken,workerid)
 
-# Experiments either get created:
-# 1. As a blank template (e.g., cfgs will be created manually or copied from another existing experiment)
-# 2. When a .zip file of .cfgs is uploaded
+###############################
+# Since the Study and Experiment models cross-reference each other, the forms have to go after the models
 
-# This form will get used if (a) creating a blank Exp to add to later, (b) editing the Experiment object
+class StudyForm(ModelForm):
+    first_experiment = forms.CharField(required=False,label="Experiment name:")
+    class Meta:
+        model = Study
+        fields = ['name', 'appletName', 'first_experiment', 'consentJSON', 'public_title', 'public_description', 'homepage_visible', 'current_experiment' ]
+        labels = {'name': "Study name:",
+                  'appletName': "Name of applet to run experiment",
+                  'consentJSON': "Consent form in JSON:",
+                  'public_title': "Public visible title for homepage",
+                  'public_description': "Study description for homepage",
+                  'current_experiment': "Experiment to link on homepage"
+                  }
+
 
 class ExperimentForm(ModelForm):
-
     class Meta:
         model = Experiment
-        fields = ['name', 'recycle', 'unique_id'] #, 'add_all', 'readd_used', 'restrict_to_new'] #, 'mturk_title', 'mturk_description', 'mturk_amount', 'mturk_frame_size']
-        labels = {'name': 'Name for this Experiment',
-                  'recycle': "Allow Sessions to recycle in a Group",
-                  'unique_id': "Require unique worker id's to participate"}
+        fields = ['name']
+        labels = {'name': 'Name for this Experiment'}
+        #fields = ['name', 'recycle', 'unique_id'] #, 'add_all', 'readd_used', 'restrict_to_new'] #, 'mturk_title', 'mturk_description', 'mturk_amount', 'mturk_frame_size']
+        #labels = {'name': 'Name for this Experiment',
+        #          'recycle': "Allow Sessions to recycle in a Group",
+        #          'unique_id': "Require unique worker id's to participate"}
         widgets = {'study': forms.HiddenInput()}
 
 
-class ExperimentUploadForm(ModelForm):
-
-    study_id=forms.ModelChoiceField(queryset=Study.objects.all(),label='Associated Study',required=True)
-    restrict_to_new=forms.BooleanField(widget=forms.CheckboxInput,label='Only administer new cfgs for this token',initial=False,required=False)
-
-    class Meta:
-        model = Experiment
-        fields = ['recycle', 'unique_id'] #, 'add_all', 'readd_used', 'restrict_to_new'] #, 'mturk_title', 'mturk_description', 'mturk_amount', 'mturk_frame_size']
-        labels = {'recycle': "Allow Sessions to recycle in a Group",
-                  'unique_id': "Require unique worker id's to participate"}
+#class ExperimentUploadForm(ModelForm):
+#
+#    study_id=forms.ModelChoiceField(queryset=Study.objects.all(),label='Associated Study',required=True)
+#    restrict_to_new=forms.BooleanField(widget=forms.CheckboxInput,label='Only administer new cfgs for this token',initial=False,required=False)
+#
+#    class Meta:
+#        model = Experiment
+#        fields = ['recycle', 'unique_id'] #, 'add_all', 'readd_used', 'restrict_to_new'] #, 'mturk_title', 'mturk_description', 'mturk_amount', 'mturk_frame_size']
+#        labels = {'recycle': "Allow Sessions to recycle in a Group",
+#                  'unique_id': "Require unique worker id's to participate"}
 
 
 ############################## Handling session data (cfg files)
