@@ -58,18 +58,14 @@ class Experiment(models.Model):
         self.groupToken=newToken
         return
 
-    def add_sessions(self,sessions,limit=False):
+    def add_sessions(self,sessions):
         if self.groupSessions=='':
             self.groupSessions=sessions
-            self.totalTokens=len(sessions.split(' '))
-            self.numTokens=self.totalTokens
             return
         self.groupSessions=sessions+' '+self.groupSessions
-        self.totalTokens = len(self.groupSessions.split(' '))
-        if limit:
-            self.numTokens=len(sessions.split(' '))
-        else:
-            self.numTokens=self.totalTokens
+
+    def num_sessions(self):
+        return len(self.groupSessions.split())
 
     # base should be constructed in the view that calls this to get the link
     def link_url(self,request,workerid=''):

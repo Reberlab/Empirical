@@ -310,7 +310,7 @@ def upload_zip(request, studyNumber=0, expNumber=0):
                     raw_cfg = fp.read()
                     cfg = raw_cfg.decode('utf-8','ignore')  # to avoid getting db breaking characters stored by accident
                     fp.close()
-                    c = Session.objects.create_session(name=fn, #f.filename,
+                    c = Session.objects.create_session(name=fn,
                                                        exp=e,
                                                        configFile=cfg,
                                                        user=request.user.username)
@@ -319,7 +319,7 @@ def upload_zip(request, studyNumber=0, expNumber=0):
                     else:
                         session_list+=' '+c.sessionToken
                     unpack_log.append("Added config file %s as %s" % (f.filename, c.name))
-            e.add_sessions(session_list, zip_form.cleaned_data['exp_restrict'])
+            e.add_sessions(session_list)
             e.save()
             unpack_log.append("Added session list [%s] to experiment" % session_list)
             return render(request,'upload_report.html', {'log': unpack_log, 'exp':e})

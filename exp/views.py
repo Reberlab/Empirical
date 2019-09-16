@@ -48,7 +48,12 @@ def one_study(request, studyNumber=0):
             exp_list.append([i.user,i.pk,i])
         exp_list.sort()
         (users, pkids, exp_list) = zip(*exp_list)
-    return render(request, 'one_study.html', {'study': s, 'exp_list': exp_list, 'filer_message': filer_message})
+        session_count=[]
+        for i in exp_list:
+            session_count.append(i.num_sessions())
+    return render(request, 'one_study.html', {'study': s,
+                                              'exp_list': zip(session_count,exp_list),
+                                              'filer_message': filer_message})
 
 
 # edit_study -- update for new study fields
@@ -119,10 +124,6 @@ def one_experiment(request, expNumber=0):
             d=i.lastStarted
         if i.sessionToken in session_order:  # this allows some session to have been removed from the groupsessions list
             token_order.append((0, d, i))
-            #if session_order[i.sessionToken]<e.numTokens:
-            #    token_order.append((0, d, i))
-            #else:
-            #    token_order.append((1, d, i))
         else:
             token_order.append((99999, d, i))
     if token_order!=[]:

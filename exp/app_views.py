@@ -3,7 +3,7 @@ from django.shortcuts import render
 from exp.models import Session, Report, ReportForm, Experiment, Security
 from filer.models import Filer
 
-# from datetime import date, datetime, timedelta
+from datetime import datetime
 from django.conf import settings
 from django.utils import timezone
 
@@ -327,20 +327,14 @@ def report(request, sessionToken, workerid=''):
                 else:
                     r.appVersion = 0
 
-                if r.eventType=='private': # wrap content in private tags
-                    report_xml={}
-                    ip_addr=get_client_ip(request)
-                    wrapped_report = xml_string(report_xml)
-                    report_xml['Empirical:privatedata'] = "IP address: %s\n%s" % (ip_addr,r.dataLog)
-                    r.dataLog = wrapped_report
-                    r.save()
-                elif r.eventType=='status': # no xml wrapping on status events, save raw text
+                if r.eventType=='status': # no xml wrapping on status events, save raw text
                     r.save()
                 else:
                     report_xml={}
                     ip_addr=get_client_ip(request)
                     report_xml['Empirical:config']=r.sessionKey.configFile
                     report_xml['Empirical:appInfo']="Applet name: %s\nVersion: %d" % (r.appName,r.appVersion)
+                    report_xml['Empirical:time']="%s" % datetime.now() #  r.uploadDate
                     if r.eventType == 'private':  # wrap the data into the private section
                         report_xml['Empirical:privatedata'] = "WorkerId: %s\nIP address: %s\n%s" % (r.workerId, ip_addr, r.dataLog)
                     else: # typical format

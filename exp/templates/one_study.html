@@ -6,16 +6,18 @@
     <p>Applet to run with this study: {{ study.appletName }}, {{ filer_message }}</p>
     <p><a href="{% url 'edit_study' study.id%}">Edit this Study</a></p>
     <table>
-    <tr><th>Experiment name</th><th>Created by</th><th>URL Token</th><th>Creation date</th><th>Available Sessions</th><th>Total sessions</th></tr>
+    <tr><th>Experiment name</th><th>Created by</th><th>URL Token</th><th>Creation date</th><th>Available Sessions</th></tr>
 
-    {% for i in exp_list %}
+    {% for n,i in exp_list %}
         <tr>
         <td><a href="{% url 'one_experiment' i.pk %}"><b> {{ i.name }}</b></a></td>
         <td>{{ i.user }}</td>
         <td>{{ i.groupToken }}</td>
         <td>{{ i.creationDate }}</td>
-        <td>{{ i.numTokens }}</td>
-        <td>{{ i.totalTokens }}</td>
+        <td>{{ n }}</td>
+        <td> <a href="{% url 'upload_into_exp' study.pk i.pk %}">Upload zip</a>
+            <a href="{% url 'new_config' i.pk %}">Add configuration file</a>
+        </td>
         </tr>
     {% endfor %}
     </table>

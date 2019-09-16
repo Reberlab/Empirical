@@ -79,7 +79,7 @@ def experiment_data(request, expNumber):
     d=Download.objects.filter(experiment=e)
 
     return render(request, 'display_exp_data.html', {'exp': e, 'reports': reports,
-                                                     'parent': e.study, 'events': event_types,
+                                                     'parent': e.parent_study, 'events': event_types,
                                                      'downloads': d, 'log': log})
 
 # construct a unique .txt file output name
