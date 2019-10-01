@@ -6,17 +6,33 @@ from django.utils.text import slugify
 # to allow for reading non-ascii strings from the db without crashing
 from django.db import connection
 
-from exp.models import Session, Report, Experiment, Study, Download
+from exp.models import Session, Report, Experiment, Download
 from datetime import date
-import time
 
 import zipfile, os.path
 from django.conf import settings
 from django.core.files import File
 
-# to do -- download since, redownload last zip file, delete older zip files when a new one is created
-#  formatting options?
+from exp.app_views import xml_string
+import xml.etree.ElementTree as ET
+xml_namespace= {'Empirical': 'https://www.reberlab.org/'}
 
+
+def encode_datalog(r):
+    header="RecordId: %d\nSessionToken: %s\nUploadDate: %s\n" % (r.pk, r.sessionToken, r.uploadDate)
+    if "<root xmlns:Empirical=" in r.dataLog:
+        # parse XML, add header information, return
+        d = ET.fromstring(r.dataLog)
+        h = ET.Element("Empirical:recorddata")
+        h.text = header
+        d.append(h)
+        return(ET.tostring(d))
+    data_xml={}
+    data_xml['Empirical:recorddata'] = header
+    data_xml['Empirical:datalog'] = r.dataLog.encode('ascii','ignore')
+    return(xml_string(data_xml))
+
+# Displays a single record on a web page
 @login_required
 def session_data(request, sessionToken, pkid=0):
     try:
@@ -31,7 +47,7 @@ def session_data(request, sessionToken, pkid=0):
 
     return render(request, 'display_data.html', {'session': s, 'reports': data_report})
 
-# Add download record
+# Downloads one or more records from a session reference
 @login_required
 def download_session_data(request, sessionToken='', pkid=0):
     try:
@@ -40,10 +56,10 @@ def download_session_data(request, sessionToken='', pkid=0):
         return render(request, 'session_not_found_error.html', {'token': sessionToken})
 
     report_contents=''
-    if pkid!=0:
+    if pkid!=0: # download a single datafile, XML wrapped
         data_report = Report.objects.filter(sessionToken=sessionToken,pk=pkid)
-        report_contents=data_report[0].dataLog
-    else:
+        report_contents=encode_datalog(data_report[0])
+    else: # download all the data associated with a session/cfg, not XML wrapped
         r = Report.objects.filter(sessionToken=sessionToken)
         for i in r:
             header="Data record: %d\nSessionToken: %s\nUpload date: %s\n" % (i.pkid,i.sessionToken,i.uploadDate)
@@ -56,7 +72,7 @@ def download_session_data(request, sessionToken='', pkid=0):
         return response
     return render(request, 'Object_not_found.html', {'token': sessionToken, 'type': "Data records"})
 
-
+# Displays a list of records from an experiment, web page
 @login_required
 def experiment_data(request, expNumber):
     try:
@@ -92,7 +108,10 @@ def unique_txt(fn_list,cfg_name,event_type):
         fn="%s_%s_%d.txt" % (base,event_type,count)
     return fn
 
-# bulk data download for an entire experiment -- to do, update for new exp structure
+# Bulk data download for an entire experiment
+# Todo: insert XML formatting for record information (if XML), add header if not XML
+#  Make filenames not repeat for download since
+
 @login_required
 def download_exp_data(request, expNumber, reportType='', since=0):
     try:
@@ -119,9 +138,10 @@ def download_exp_data(request, expNumber, reportType='', since=0):
         return HttpResponse('Error creating output file')
 
     output_zip=zipfile.ZipFile(output_filename, 'w')
-    fn_list=[] # for tracking duplicate filenames in the output zip
+    #fn_list=[] # for tracking duplicate filenames in the output zip
     count=0
     s = Session.objects.filter(exp=e)
+    basename=slugify(e.name)
     for i in s:
         r = Report.objects.filter(sessionKey=i)
         # if since is set, check dates
@@ -129,9 +149,10 @@ def download_exp_data(request, expNumber, reportType='', since=0):
             # reports should match type if set, contents length >0
             if (reportType=='' or j.eventType==reportType) and len(j.dataLog.strip())>0:
                 if since==0 or j.uploadDate>prior_download.downloadDate:
-                    fn=unique_txt(fn_list,e.name,j.eventType)
-                    output_zip.writestr(fn,j.dataLog.encode("ascii",'ignore'))
-                    fn_list.append(fn)
+                    #fn=unique_txt(fn_list,e.name,j.eventType)
+                    fn="%s_%s_%d.txt" % (basename,j.eventType,j.pk)
+                    output_zip.writestr(fn,encode_datalog(j))  #dataLog.encode("ascii",'ignore'))
+                    #fn_list.append(fn)
                     count=count+1
 
     output_zip.close()
