@@ -23,6 +23,7 @@ def encode_datalog(r):
     if "<root xmlns:Empirical=" in r.dataLog:
         # parse XML, add header information, return
         d = ET.fromstring(r.dataLog)
+        ET.register_namespace("Empirical", 'https://www.reberlab.org/')
         h = ET.Element("Empirical:recorddata")
         h.text = header
         d.append(h)
