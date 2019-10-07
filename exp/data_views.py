@@ -3,9 +3,6 @@ from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils.text import slugify
 
-# to allow for reading non-ascii strings from the db without crashing
-from django.db import connection
-
 from exp.models import Session, Report, Experiment, Download
 from datetime import date
 
@@ -16,7 +13,6 @@ from django.core.files import File
 from exp.app_views import xml_string
 import xml.etree.ElementTree as ET
 xml_namespace= {'Empirical': 'https://www.reberlab.org/'}
-
 
 def encode_datalog(r):
     header="RecordId: %d\nSessionToken: %s\nUploadDate: %s\n" % (r.pk, r.sessionToken, r.uploadDate)
